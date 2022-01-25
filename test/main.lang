@@ -1,0 +1,11 @@
+str1: string = "davide ovo je string";
+str2: string = 'davide ovo je isto string';
+str3: string = `a i ovo string`;
+
+int a = 10;
+a: int = 10;
+float f = 10.1401;
+long a = 100_000_000;
+if (true) {
+	write(stdout, 1, a);
+}
