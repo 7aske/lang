@@ -194,7 +194,17 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 			continue;
 		}
 
-		Token token = lexer_eat_token(&ptr, string_buffer);
+		Token token = resolve_operator(ptr);
+		if (token == TOK_INVALID) {
+			report_lexer_error("Invalid token")
+			break;
+		}
+		// Increment the pointer by the amount of characters 'eaten' by the
+		// resolve_operator function.
+		// @Optimization not the best way to do this.
+		const char* tok_val = token_value[token];
+		ptr += strlen(tok_val);
+
 		lexer_token_new(&data->data[data->size], token, 0, col, row);
 		data->size++;
 

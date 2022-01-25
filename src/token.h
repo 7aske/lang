@@ -5,6 +5,7 @@
 #ifndef LANG_TOKEN_H
 #define LANG_TOKEN_H
 #include <assert.h>
+#include <stdlib.h>
 #define STR(x) #x
 
 typedef enum token {
@@ -161,6 +162,7 @@ static const char* token_value[] = {
 };
 
 Token resolve_token(char*, size_t);
+Token resolve_operator(const char* ptr);
 
 #define SIZE_data_array(data) (sizeof(data)/sizeof((data)[0]))
 
