@@ -5,8 +5,8 @@
 #include "parser.h"
 
 void parser_parse(Lexer_Result* lexer_result) {
-	Parsed_Token* parsed_tokens = lexer_result->data;
-	Parsed_Token* end = lexer_result->data + lexer_result->size;
+	Token* parsed_tokens = lexer_result->data;
+	Token* end = lexer_result->data + lexer_result->size;
 
 	while(parsed_tokens != end) {
 

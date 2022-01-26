@@ -3,7 +3,7 @@
 //
 #include "ast.h"
 
-inline Ast_Node_Type convert_token_to_ast_node_type(Token token) {
+inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 	switch (token) {
 		case TOK_IF:
 			return AstIfNode;
@@ -53,7 +53,7 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token token) {
 	}
 }
 
-Ast_Node* ast_node_new(Parsed_Token* token) {
+Ast_Node* ast_node_new(Token* token) {
 	Ast_Node* ast_node = (Ast_Node*) calloc(1, sizeof(Ast_Node));
 	ast_node->type = convert_token_to_ast_node_type(token->token);
 	ast_node->precedence = 0;

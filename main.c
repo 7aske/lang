@@ -38,13 +38,14 @@ int main(int argc, char** argv) {
 	lexer_lex(code_text, &parsed);
 
 	for (int i = 0; i < parsed.size; ++i) {
-		Parsed_Token tok = parsed.data[i];
+		Token tok = parsed.data[i];
 		char* repr = (char*) token_repr[tok.token];
 		char* text = (char*) tok.code_text;
 		char* data = (char*) token_value[tok.token];
-		printf("%-12s(%d %d) = %s \n",
+		printf("%-12s(%ld %ld - %ld %ld) = '%s' \n",
 			   repr == NULL ? "null" : repr,
-			   tok.col, tok.row,
+			   tok.c0, tok.r0,
+			   tok.c1, tok.r1,
 			   data == NULL ? text : data);
 	}
 

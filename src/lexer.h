@@ -18,17 +18,8 @@ typedef enum lexer_error {
 	LEXER_FAILED = -1,
 } Lexer_Error;
 
-typedef struct parsed_token {
-	Token token;
-	size_t code_size;
-	// @Alloc
-	char* code_text;
-	int col;
-	int row;
-} Parsed_Token;
-
 typedef struct lexer_result {
-	Parsed_Token* data;
+	Token* data;
 	size_t size;
 } Lexer_Result;
 
@@ -46,7 +37,7 @@ for(int _i = 0; _i < LEXER_ERROR_COUNT; ++_i) { \
 
 #define LEXER_RESULT_DATA_FREE(result) {\
 for(int _i = 0; _i < (result)->size; ++_i) {\
-    Parsed_Token it = (result)->data[_i];\
+    Token it = (result)->data[_i];\
 	if (it.code_text != NULL) {\
 		free(it.code_text);\
 	}\
@@ -68,13 +59,13 @@ int lexer_is_number(const char*);
 
 int lexer_is_float(const char*);
 
-void lexer_token_new(Parsed_Token*, Token, size_t, int, int);
+void lexer_token_new(Token*, Token_Type, size_t, int, int);
 
 Lexer_Error lexer_eat_string(char**, String_Buffer*);
 
 size_t lexer_eat_iden(char**, String_Buffer*);
 
-Token lexer_eat_token(char**, String_Buffer*);
+Token_Type lexer_eat_token(char**, String_Buffer*);
 
 size_t lexer_eat_number(char**, String_Buffer*);
 

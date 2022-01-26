@@ -39,7 +39,7 @@ typedef struct ast_node {
 	Ast_Node_Type type;
 } Ast_Node;
 
-Ast_Node* ast_node_new(Parsed_Token* token);
-Ast_Node_Type convert_token_to_ast_node_type(Token token);
+Ast_Node* ast_node_new(Token* token);
+Ast_Node_Type convert_token_to_ast_node_type(Token_Type token);
 
 #endif //LANG_AST_H

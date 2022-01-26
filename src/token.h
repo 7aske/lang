@@ -11,7 +11,7 @@
 
 #define STR(x) #x
 
-typedef enum token {
+typedef enum token_type {
 	TOK_INVALID = -1,
 	TOK_IF = 0,   // if
 	TOK_ELSE,     // else
@@ -63,6 +63,17 @@ typedef enum token {
 	TOK_LIT_FLT,
 	__TOK_SIZE
 	// keywords
+} Token_Type;
+
+typedef struct token {
+	Token_Type token;
+	size_t code_size;
+	// @Alloc
+	char* code_text;
+	size_t c0;
+	size_t r0;
+	size_t c1;
+	size_t r1;
 } Token;
 
 static const char* token_repr[] = {
@@ -164,8 +175,8 @@ static const char* token_value[] = {
 	NULL,NULL,NULL,NULL,NULL
 };
 
-Token resolve_token(char*, size_t);
-Token resolve_operator(const char* ptr);
+Token_Type resolve_token(char*, size_t);
+Token_Type resolve_operator(const char* ptr);
 
 #define SIZE_data_array(data) (sizeof(data)/sizeof((data)[0]))
 

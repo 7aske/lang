@@ -4,7 +4,7 @@
 #include "token.h"
 
 
-Token resolve_token(char* buf, size_t size) {
+Token_Type resolve_token(char* buf, size_t size) {
 	size_t len = strnlen(buf, size);
 	for (int i = 0; i < __TOK_KEYWORD_END; ++i) {
 		const char* tok = token_value[i];
@@ -16,7 +16,7 @@ Token resolve_token(char* buf, size_t size) {
 	return TOK_INVALID;
 }
 
-Token resolve_operator(const char* ptr) {
+Token_Type resolve_operator(const char* ptr) {
 	if (*ptr == '!') {
 		if (*(ptr + 1) == '=') {
 			return TOK_NE;

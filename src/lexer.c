@@ -41,12 +41,12 @@ size_t lexer_eat_iden(char** code, String_Buffer* string_buffer) {
 	return string_buffer->size;
 }
 
-Token lexer_eat_token(char** code, String_Buffer* string_buffer) {
+Token_Type lexer_eat_token(char** code, String_Buffer* string_buffer) {
 	char* ptr = *code;
-	Token retval = TOK_INVALID;
+	Token_Type retval = TOK_INVALID;
 	while (!isspace(*ptr)) {
 		string_buffer_append_char(string_buffer, *ptr++);
-		Token token = resolve_token(string_buffer->data, string_buffer->size);
+		Token_Type token = resolve_token(string_buffer->data, string_buffer->size);
 		if (token != TOK_INVALID) {
 			retval = token;
 			break;
@@ -111,12 +111,15 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 
 }
 
-void lexer_token_new(Parsed_Token* dest, Token token, size_t code_size, int col, int row) {
+void lexer_token_new(Token* dest, Token_Type token, size_t code_size, int col, int row) {
 	dest->token = token;
 	dest->code_size = code_size;
 	dest->code_text = (char*) calloc(code_size, sizeof(char));
-	dest->col = col;
-	dest->row = row;
+	dest->c0 = col + 1;
+	dest->r0 = row + 1;
+	dest->c1 = dest->c0 + code_size-1;
+	// @Incomplete will always show the same row as r0
+	dest->r1 = row + 1;
 }
 
 int lexer_lex(char* buffer, Lexer_Result* data) {
@@ -125,7 +128,7 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 	size_t size;
 
 	size_t data_size = 32;
-	data->data = (Parsed_Token*) calloc(data_size, sizeof(Parsed_Token));
+	data->data = (Token*) calloc(data_size, sizeof(Token));
 	data->size = 0;
 
 	int col = 0;
@@ -147,12 +150,12 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 
 		if (lexer_startof_iden(ptr)) {
 			size = lexer_eat_iden(&ptr, string_buffer);
-			Token possible_token = resolve_token(string_buffer->data, size);
+			Token_Type possible_token = resolve_token(string_buffer->data, size);
 			if (possible_token == TOK_INVALID) {
 				lexer_token_new(&data->data[data->size], TOK_IDEN, size, col, row);
 				strncpy(data->data[data->size].code_text, string_buffer->data, string_buffer->size);
 			} else {
-				lexer_token_new(&data->data[data->size], possible_token, 0, col, row);
+				lexer_token_new(&data->data[data->size], possible_token, size, col, row);
 			}
 			data->size++;
 			col += (int) size;
@@ -176,7 +179,7 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 
 		if (lexer_startof_number(ptr)) {
 			size = lexer_eat_number(&ptr, string_buffer);
-			Token token = TOK_LIT_INT;
+			Token_Type token = TOK_LIT_INT;
 			// @Incomplete validate float not having multiple decimal points
 			if (lexer_is_float(string_buffer->data)) {
 				token = TOK_LIT_FLT;
@@ -189,7 +192,7 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 			continue;
 		}
 
-		Token token = resolve_operator(ptr);
+		Token_Type token = resolve_operator(ptr);
 		if (token == TOK_INVALID) {
 			report_lexer_error("Invalid token")
 			break;
@@ -198,14 +201,15 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 		// resolve_operator function.
 		// @Optimization not the best way to do this.
 		const char* tok_val = token_value[token];
-		ptr += strlen(tok_val);
+		size_t len = strlen(tok_val);
+		ptr += len;
 
-		lexer_token_new(&data->data[data->size], token, 0, col, row);
+		lexer_token_new(&data->data[data->size], token, len, col, row);
 		data->size++;
 
 		if (data->size == data_size) {
 			data_size *= 2;
-			data->data = realloc(data->data, data_size * sizeof(Parsed_Token));
+			data->data = realloc(data->data, data_size * sizeof(Token));
 		}
 
 	}
