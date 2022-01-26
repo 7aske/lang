@@ -5,6 +5,7 @@
 #ifndef LANG_STRING_BUFFER_H
 #define LANG_STRING_BUFFER_H
 
+#include <string.h>
 #include <stdlib.h>
 
 #define STRING_BUFFER_CAPACITY (128)

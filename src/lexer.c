@@ -2,11 +2,6 @@
 // Created by nik on 1/25/22.
 //
 
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdio.h>
-
 #include "lexer.h"
 
 // Checks if the string is starting with a valid identifier token.

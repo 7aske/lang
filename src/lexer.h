@@ -5,6 +5,11 @@
 #ifndef LANG_LEXER_H
 #define LANG_LEXER_H
 
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "token.h"
 #include "string_buffer.h"
 
@@ -16,6 +21,7 @@ typedef enum lexer_error {
 typedef struct parsed_token {
 	Token token;
 	size_t code_size;
+	// @Alloc
 	char* code_text;
 	int col;
 	int row;

@@ -4,8 +4,11 @@
 
 #ifndef LANG_TOKEN_H
 #define LANG_TOKEN_H
+
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
+
 #define STR(x) #x
 
 typedef enum token {

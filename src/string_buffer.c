@@ -2,7 +2,6 @@
 // Created by nik on 1/25/22.
 //
 #include "string_buffer.h"
-#include <string.h>
 
 // Creates a new heap allocated instance of a string buffer.
 String_Buffer* string_buffer_new() {
