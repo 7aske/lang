@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "stdtypes.h"
+
 #define STR(x) #x
 
 typedef enum token_type {
@@ -69,12 +71,12 @@ typedef struct token {
 	Token_Type token;
 	union {
 		unsigned long long integer_value;
-		struct { size_t size; char* data; } string_value;
+		struct { u32 size; char* data; } string_value;
 	};
-	size_t c0; // Token start column
-	size_t r0; // Token start row
-	size_t c1; // Token end   column
-	size_t r1; // Token end   row
+	u32 c0; // Token start column
+	u32 r0; // Token start row
+	u32 c1; // Token end   column
+	u32 r1; // Token end   row
 } Token;
 
 static const char* token_repr[] = {
@@ -176,7 +178,7 @@ static const char* token_value[] = {
 	NULL, NULL, NULL, NULL, NULL
 };
 
-Token_Type resolve_token(char*, size_t);
+Token_Type resolve_token(char*, u32);
 Token_Type resolve_operator(const char* ptr);
 
 #define SIZE_data_array(data) (sizeof(data)/sizeof((data)[0]))

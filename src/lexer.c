@@ -5,33 +5,33 @@
 #include "lexer.h"
 
 // Checks if the string is starting with a valid identifier token.
-inline int lexer_startof_iden(const char* ptr) {
+inline bool lexer_startof_iden(const char* ptr) {
 	return isalpha(*ptr) || *ptr == '$' || *ptr == '_';
 }
 
 // Checks if the string starts with a valid number literal character.
 // @Incomplete maybe handle scientific notation.
-inline int lexer_startof_number(const char* ptr) {
+inline bool lexer_startof_number(const char* ptr) {
 	return isdigit(*ptr) || *ptr == '-' || *ptr == '.' || *ptr == '+';
 }
 
 // Checks if the string is a valid number character
 // @Incomplete maybe handle scientific notation.
-inline int lexer_is_number(const char* ptr) {
+inline bool lexer_is_number(const char* ptr) {
 	return isdigit(*ptr) || *ptr == '.';
 }
 
 // Checks if the string starts with a valid quote for identifying a string.
-inline int lexer_startof_string(const char* ptr) {
+inline bool lexer_startof_string(const char* ptr) {
 	return *ptr == '\'' || *ptr == '"' || *ptr == '`';
 }
 
 // Checks if while parsing the identifier next character is an identifier.
-inline int lexer_is_iden(const char* ptr) {
+inline bool lexer_is_iden(const char* ptr) {
 	return (isalnum(*ptr) || *ptr == '$' || *ptr == '_') && !isspace(*ptr);
 }
 
-size_t lexer_eat_iden(char** code, String_Buffer* string_buffer) {
+u32 lexer_eat_iden(char** code, String_Buffer* string_buffer) {
 	char* ptr = *code;
 	while (lexer_is_iden(ptr)) {
 		string_buffer_append_char(string_buffer, *ptr++);
@@ -58,14 +58,14 @@ Token_Type lexer_eat_token(char** code, String_Buffer* string_buffer) {
 }
 
 
-size_t lexer_eat_number(char** code, String_Buffer* string_buffer) {
+u32 lexer_eat_number(char** code, String_Buffer* string_buffer) {
 	char* ptr = *code;
 	// First iteration has a different condition than the rest of the loop
 	if (lexer_startof_number(ptr)) {
 		string_buffer_append_char(string_buffer, *ptr++);
 	}
 
-	size_t placeholder_offset = 0;
+	u32 placeholder_offset = 0;
 
 	while (lexer_is_number(ptr)) {
 		string_buffer_append_char(string_buffer, *ptr++);
@@ -111,7 +111,7 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 
 }
 
-void lexer_token_new(Token* dest, Token_Type token, size_t code_size, int col, int row) {
+void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 row) {
 	dest->token = token;
 	dest->string_value.size = code_size;
 	dest->string_value.data = (char*) calloc(code_size, sizeof(char));
@@ -122,12 +122,12 @@ void lexer_token_new(Token* dest, Token_Type token, size_t code_size, int col, i
 	dest->r1 = row + 1;
 }
 
-int lexer_lex(char* buffer, Lexer_Result* data) {
+u32 lexer_lex(char* buffer, Lexer_Result* data) {
 	char* ptr = buffer;
 	String_Buffer* string_buffer = string_buffer_new();
-	size_t size;
+	u32 size;
 
-	size_t data_size = 32;
+	u32 data_size = 32;
 	data->data = (Token*) calloc(data_size, sizeof(Token));
 	data->size = 0;
 
@@ -201,7 +201,7 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 		// resolve_operator function.
 		// @Optimization not the best way to do this.
 		const char* tok_val = token_value[token];
-		size_t len = strlen(tok_val);
+		u32 len = strlen(tok_val);
 		ptr += len;
 
 		lexer_token_new(&data->data[data->size], token, len, col, row);
@@ -224,6 +224,6 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 	return LEXER_ERROR_COUNT;
 }
 
-int lexer_is_float(const char* num_str) {
+bool lexer_is_float(const char* num_str) {
 	return strchr(num_str, '.') != NULL;
 }

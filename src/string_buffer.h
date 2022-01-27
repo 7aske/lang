@@ -8,13 +8,15 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "stdtypes.h"
+
 #define STRING_BUFFER_CAPACITY (128)
 #define STRING_BUFFER_SIZEOF (sizeof(char))
 
 typedef struct string_buffer {
 	char* data;
-	size_t size;
-	size_t capacity;
+	u32 size;
+	u32 capacity;
 } String_Buffer;
 
 String_Buffer* string_buffer_new();
