@@ -15,7 +15,7 @@ set(SOURCE_FILES
         src/ast.c
         src/ast.h)
 
-add_executable(lang main.c ${SOURCE_FILES})
+add_executable(lang main.c ${SOURCE_FILES} src/stdtypes.h)
 
 # TESTS
 include(CTest)

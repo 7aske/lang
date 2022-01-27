@@ -9,25 +9,33 @@
 #include "lexer.h"
 
 typedef enum ast_node_type {
-	AstNode,
-	AstUnaryNode,
-	AstIdentifierNode,
-	AstArithmeticNode,
-	AstAssignmentNode,
-	AstTypeDeclarationNode,
-	AstBlockNode,
-	AstBooleanNode,
-	AstBreakNode,
-	AstContinueNode,
-	AstDefaultNode,
-	AstEqualityNode,
-	AstIfNode,
-	AstLiteralNode,
-	AstMinusNode,
-	AstNotNode,
-	AstRelationalNode,
-	AstSymbolNode,
-	AstForNode,
+	AST_NODE = -1,
+	AST_ASSIGN,
+	AST_IDENT,
+	AST_LITERAL,
+
+	AST_ARITHMETIC,
+	AST_RELATIONAL,
+	AST_EQUALITY,
+	AST_BOOLEAN,
+	AST_NOT,
+	AST_MINUS,
+	AST_PREINC,
+	AST_POSTINC,
+	AST_PREDEC,
+	AST_POSTDEC,
+
+	AST_FOR,
+	AST_BREAK,
+	AST_CONTINUE,
+
+	AST_IF,
+	AST_DEFAULT,
+	AST_TERNARY,
+
+	AST_BLOCK,
+	AST_TYPE_DECL
+
 } Ast_Node_Type;
 
 

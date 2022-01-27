@@ -38,8 +38,8 @@ for(int _i = 0; _i < LEXER_ERROR_COUNT; ++_i) { \
 #define LEXER_RESULT_DATA_FREE(result) {\
 for(int _i = 0; _i < (result)->size; ++_i) {\
     Token it = (result)->data[_i];\
-	if (it.code_text != NULL) {\
-		free(it.code_text);\
+	if (it.string_value.data != NULL) {\
+		free(it.string_value.data);\
 	}\
 }\
 free((result)->data);\

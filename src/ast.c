@@ -6,50 +6,51 @@
 inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 	switch (token) {
 		case TOK_IF:
-			return AstIfNode;
+			return AST_IF;
 		case TOK_FOR:
-			return AstForNode;
+			return AST_FOR;
 		case TOK_CONT:
-			return AstContinueNode;
+			return AST_CONTINUE;
 		case TOK_BREAK:
-			return AstBreakNode;
+			return AST_BREAK;
 		case TOK_LIT_STR:
 		case TOK_LIT_INT:
 		case TOK_LIT_FLT:
 		case TOK_TRUE:
 		case TOK_FALSE:
 		case TOK_NULL:
-			return AstLiteralNode;
+			return AST_LITERAL;
 		case TOK_ASSN:
-			return AstAssignmentNode;
+			return AST_ASSIGN;
 		case TOK_DQM:
-			return AstDefaultNode;
+			return AST_DEFAULT;
 		case TOK_COL:
-			return AstTypeDeclarationNode;
+			return AST_TYPE_DECL;
 		case TOK_ADD:
 		case TOK_SUB:
 		case TOK_DIV:
 		case TOK_MUL:
 		case TOK_MOD:
-			return AstArithmeticNode;
+			return AST_ARITHMETIC;
 		case TOK_AND:
 		case TOK_OR:
 		case TOK_NOT:
-			return AstBooleanNode;
+			return AST_BOOLEAN;
 		case TOK_EQ:
 		case TOK_NE:
 		case TOK_GT:
 		case TOK_LT:
 		case TOK_GE:
 		case TOK_LE:
-			return AstRelationalNode;
+			return AST_RELATIONAL;
 		case TOK_INC:
+			return AST_PREINC;
 		case TOK_DEC:
-			return AstUnaryNode;
+			return AST_PREDEC;
 		case TOK_IDEN:
-			return AstIdentifierNode;
+			return AST_IDENT;
 		default:
-			return AstNode;
+			return AST_NODE;
 	}
 }
 

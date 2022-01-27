@@ -67,13 +67,14 @@ typedef enum token_type {
 
 typedef struct token {
 	Token_Type token;
-	size_t code_size;
-	// @Alloc
-	char* code_text;
-	size_t c0;
-	size_t r0;
-	size_t c1;
-	size_t r1;
+	union {
+		unsigned long long integer_value;
+		struct { size_t size; char* data; } string_value;
+	};
+	size_t c0; // Token start column
+	size_t r0; // Token start row
+	size_t c1; // Token end   column
+	size_t r1; // Token end   row
 } Token;
 
 static const char* token_repr[] = {
@@ -172,7 +173,7 @@ static const char* token_value[] = {
 	"}",
 	"[",
 	"]",
-	NULL,NULL,NULL,NULL,NULL
+	NULL, NULL, NULL, NULL, NULL
 };
 
 Token_Type resolve_token(char*, size_t);
@@ -180,7 +181,8 @@ Token_Type resolve_operator(const char* ptr);
 
 #define SIZE_data_array(data) (sizeof(data)/sizeof((data)[0]))
 
-static_assert(__TOK_SIZE == SIZE_data_array(token_repr),  "Missing token repr");
-static_assert(__TOK_SIZE == SIZE_data_array(token_value), "Missing token value");
+static_assert(__TOK_SIZE == SIZE_data_array(token_repr), "Missing token repr");
+static_assert(__TOK_SIZE == SIZE_data_array(token_value),
+			  "Missing token value");
 
 #endif //LANG_TOKEN_H

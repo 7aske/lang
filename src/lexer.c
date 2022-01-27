@@ -113,8 +113,8 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 
 void lexer_token_new(Token* dest, Token_Type token, size_t code_size, int col, int row) {
 	dest->token = token;
-	dest->code_size = code_size;
-	dest->code_text = (char*) calloc(code_size, sizeof(char));
+	dest->string_value.size = code_size;
+	dest->string_value.data = (char*) calloc(code_size, sizeof(char));
 	dest->c0 = col + 1;
 	dest->r0 = row + 1;
 	dest->c1 = dest->c0 + code_size-1;
@@ -153,7 +153,7 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 			Token_Type possible_token = resolve_token(string_buffer->data, size);
 			if (possible_token == TOK_INVALID) {
 				lexer_token_new(&data->data[data->size], TOK_IDEN, size, col, row);
-				strncpy(data->data[data->size].code_text, string_buffer->data, string_buffer->size);
+				strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size);
 			} else {
 				lexer_token_new(&data->data[data->size], possible_token, size, col, row);
 			}
@@ -171,7 +171,7 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 			}
 
 			lexer_token_new(&data->data[data->size], TOK_LIT_STR, size, col, row);
-			strncpy(data->data[data->size].code_text, string_buffer->data, string_buffer->size + 1);
+			strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size + 1);
 			data->size++;
 			col += (int) size;
 			continue;
@@ -186,7 +186,7 @@ int lexer_lex(char* buffer, Lexer_Result* data) {
 			}
 
 			lexer_token_new(&data->data[data->size], token, size, col, row);
-			strncpy(data->data[data->size].code_text, string_buffer->data, string_buffer->size);
+			strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size);
 			data->size++;
 			col += (int) size;
 			continue;

@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < parsed.size; ++i) {
 		Token tok = parsed.data[i];
 		char* repr = (char*) token_repr[tok.token];
-		char* text = (char*) tok.code_text;
+		char* text = (char*) tok.string_value.data;
 		char* data = (char*) token_value[tok.token];
 		printf("%-12s(%ld %ld - %ld %ld) = '%s' \n",
 			   repr == NULL ? "null" : repr,
