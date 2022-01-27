@@ -25,8 +25,9 @@ typedef struct lexer_result {
 } Lexer_Result;
 
 #define MAX_LEXER_ERRORS (255)
-static int LEXER_ERROR_COUNT = 0;
-static const u8* LEXER_ERRORS[MAX_LEXER_ERRORS];
+static u32 LEXER_ERROR_COUNT = 0;
+// Array of maximum lexer errors
+static const char* LEXER_ERRORS[MAX_LEXER_ERRORS];
 // @Incomplete get source code snippet and source code location
 #define report_lexer_error(str) if (LEXER_ERROR_COUNT < MAX_LEXER_ERRORS) {LEXER_ERRORS[LEXER_ERROR_COUNT++] = (str);}
 
@@ -54,6 +55,8 @@ bool lexer_startof_number(const char*);
 
 bool lexer_startof_string(const char*);
 
+bool lexer_startof_char(const char* ptr);
+
 bool lexer_is_iden(const char*);
 
 bool lexer_is_number(const char*);
@@ -61,6 +64,8 @@ bool lexer_is_number(const char*);
 bool lexer_is_float(const char*);
 
 void lexer_token_new(Token*, Token_Type, u32, u32, u32);
+
+Lexer_Error lexer_eat_char(char** , String_Buffer*);
 
 Lexer_Error lexer_eat_string(char**, String_Buffer*);
 

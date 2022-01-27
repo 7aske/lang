@@ -61,6 +61,7 @@ typedef enum token_type {
 	__TOK_KEYWORD_END,
 	TOK_IDEN,
 	TOK_LIT_STR,
+	TOK_LIT_CHR,
 	TOK_LIT_INT,
 	TOK_LIT_FLT,
 	__TOK_SIZE
@@ -70,7 +71,10 @@ typedef enum token_type {
 typedef struct token {
 	Token_Type token;
 	union {
-		unsigned long long integer_value;
+		char* name;
+		s64 integer_value;
+		float32 float32_value;
+		float64 float64_value;
 		struct { u32 size; char* data; } string_value;
 	};
 	u32 c0; // Token start column
@@ -127,6 +131,7 @@ static const char* token_repr[] = {
 	STR(TOK_IDEN),
 	STR(TOK_LIT_STR),
 	STR(TOK_LIT_INT),
+	STR(TOK_LIT_CHR),
 	STR(TOK_LIT_FLT),
 };
 
@@ -175,7 +180,7 @@ static const char* token_value[] = {
 	"}",
 	"[",
 	"]",
-	NULL, NULL, NULL, NULL, NULL
+	NULL, NULL, NULL, NULL, NULL, NULL
 };
 
 Token_Type resolve_token(char*, u32);

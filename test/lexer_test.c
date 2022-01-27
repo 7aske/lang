@@ -95,4 +95,16 @@ int main(void){
 	assert(lexer_result.data[7].token == TOK_RPAREN);
 	assert(lexer_result.data[8].token == TOK_SCOL);
 	free(lexer_result.data);
+
+
+	char* code9 = "str: char = 'c';";
+	lexer_lex(code9, &lexer_result);
+	assert(lexer_result.size == 6);
+	assert(lexer_result.data[0].token == TOK_IDEN);
+	assert(lexer_result.data[1].token == TOK_COL);
+	assert(lexer_result.data[2].token == TOK_IDEN);
+	assert(lexer_result.data[3].token == TOK_ASSN);
+	assert(lexer_result.data[4].token == TOK_LIT_CHR);
+	assert(lexer_result.data[5].token == TOK_SCOL);
+	free(lexer_result.data);
 }

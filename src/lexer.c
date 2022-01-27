@@ -26,6 +26,11 @@ inline bool lexer_startof_string(const char* ptr) {
 	return *ptr == '\'' || *ptr == '"' || *ptr == '`';
 }
 
+// Checks if the character starts with a valid quote for identifying a character literal
+bool lexer_startof_char(const char* ptr) {
+	return *ptr == '\'';
+}
+
 // Checks if while parsing the identifier next character is an identifier.
 inline bool lexer_is_iden(const char* ptr) {
 	return (isalnum(*ptr) || *ptr == '$' || *ptr == '_') && !isspace(*ptr);
@@ -79,6 +84,20 @@ u32 lexer_eat_number(char** code, String_Buffer* string_buffer) {
 	(*code) += string_buffer->size + placeholder_offset;
 
 	return string_buffer->size;
+}
+
+Lexer_Error lexer_eat_char(char** code, String_Buffer* string_buffer) {
+	// @Incomplete handle multi-char char literals?
+	// We assume *code is "'"
+	(*code)++; // skip '
+	string_buffer_append_char(string_buffer, **code);
+	if (*(++*code) != '\'') {
+		(*code) -= 2; // reset?
+		return LEXER_FAILED;
+	}
+	(*code)++;
+
+	return 1;
 }
 
 Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
@@ -161,6 +180,20 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 			col += (int) size;
 			continue;
 		}
+		if (lexer_startof_char(ptr)) {
+			size = lexer_eat_char(&ptr, string_buffer);
+
+			if (size == LEXER_FAILED) {
+				report_lexer_error("Invalid char literal")
+				break;
+			}
+			lexer_token_new(&data->data[data->size], TOK_LIT_CHR, size, col, row);
+			strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size + 1);
+			data->size++;
+			col += 2 + size; // 2 is for two quotes;
+
+			continue;
+		}
 
 		if (lexer_startof_string(ptr)) {
 			size = lexer_eat_string(&ptr, string_buffer);
@@ -223,6 +256,7 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 
 	return LEXER_ERROR_COUNT;
 }
+
 
 bool lexer_is_float(const char* num_str) {
 	return strchr(num_str, '.') != NULL;
