@@ -8,6 +8,11 @@
 #include "lexer.h"
 #include "ast.h"
 
-void parser_parse(Lexer_Result* lexer_result);
+typedef struct parser_result {
+	u32 size;
+	Ast_Node** nodes;
+} Parser_Result;
+
+Parser_Result parser_parse(Lexer_Result* lexer_result);
 
 #endif //LANG_PARSER_H
