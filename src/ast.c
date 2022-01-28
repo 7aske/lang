@@ -38,6 +38,7 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 			return AST_BOOLEAN;
 		case TOK_EQ:
 		case TOK_NE:
+			return AST_EQUALITY;
 		case TOK_GT:
 		case TOK_LT:
 		case TOK_GE:
@@ -49,6 +50,8 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 			return AST_PREDEC;
 		case TOK_IDEN:
 			return AST_IDENT;
+		case TOK_LBRACE:
+			return AST_BLOCK;
 		default:
 			return AST_NODE;
 	}
@@ -57,7 +60,24 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 Ast_Node* ast_node_new(Token* token) {
 	Ast_Node* ast_node = (Ast_Node*) calloc(1, sizeof(Ast_Node));
 	ast_node->type = convert_token_to_ast_node_type(token->token);
-	ast_node->precedence = 0;
+	// We do this only in the case of block nodes
+	if (ast_node->type == AST_BLOCK) {
+		ast_node->precedence = 0;
+		ast_node->size = 0;
+		ast_node->capacity = 16;
+		ast_node->nodes = (Ast_Node**) calloc(1, sizeof(Ast_Node*));
+	}
 	return ast_node;
 }
 
+// Function for adding parsed AST nodes to the block node
+inline Ast_Node* ast_block_node_add_node(Ast_Node* block_node, Ast_Node* ast_node){
+	assert(block_node->type == AST_BLOCK);
+	memcpy(block_node->nodes + block_node->size++, &ast_node, sizeof(Ast_Node**));
+	if (block_node->size == block_node->capacity) {
+		block_node->capacity += 2;
+		block_node->nodes = reallocarray(block_node->nodes, block_node->capacity, sizeof(Ast_Node**));
+	}
+	return *(block_node->nodes + block_node->size - 1);
+
+}

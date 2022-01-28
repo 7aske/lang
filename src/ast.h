@@ -40,14 +40,26 @@ typedef enum ast_node_type {
 
 
 typedef struct ast_node {
-	struct ast_node* middle;
-	struct ast_node* left;
-	struct ast_node* right;
+	union {
+		// Regular nodes
+		struct {
+			struct ast_node* middle;
+			struct ast_node* left;
+			struct ast_node* right;
+		};
+		// Block nodes
+		struct {
+			struct ast_node** nodes;
+			u32 size;
+			u32 capacity;
+		};
+	};
 	int precedence;
 	Ast_Node_Type type;
 } Ast_Node;
 
 Ast_Node* ast_node_new(Token* token);
 Ast_Node_Type convert_token_to_ast_node_type(Token_Type token);
+Ast_Node* ast_block_node_add_node(Ast_Node*, Ast_Node*);
 
 #endif //LANG_AST_H

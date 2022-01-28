@@ -33,7 +33,7 @@ static const char* LEXER_ERRORS[MAX_LEXER_ERRORS];
 
 #define lexer_error_foreach(code) { \
 for(int _i = 0; _i < LEXER_ERROR_COUNT; ++_i) { \
-    const u8* it = LEXER_ERRORS[_i];     \
+    const char* it = LEXER_ERRORS[_i];     \
     code\
 }}
 
