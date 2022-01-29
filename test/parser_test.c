@@ -5,10 +5,12 @@ int main(void){
 	Lexer_Result lexer_result;
 	Parser_Result result;
 	Ast_Node* first_node = NULL;
+	Parser parser;
 
 	char* code1 = "if true {1} else {2};";
 	lexer_lex(code1, &lexer_result);
-	result = parser_parse(&lexer_result);
+	parser_new(&parser, code1);
+	result = parser_parse(&parser, &lexer_result);
 
 	first_node = result.nodes[0];
 	assert(first_node->type == AST_IF);
@@ -18,10 +20,12 @@ int main(void){
 	assert(first_node->right->type == AST_BLOCK);
 	assert(first_node->right->nodes[0]->type == AST_LITERAL);
 	free(lexer_result.data);
+	parser_free(&parser);
 
 	char* code2 = "if a == true {2} else {3};";
 	lexer_lex(code2, &lexer_result);
-	result = parser_parse(&lexer_result);
+	parser_new(&parser, code2);
+	result = parser_parse(&parser, &lexer_result);
 
 	first_node = result.nodes[0];
 	assert(first_node->type == AST_IF);
@@ -33,10 +37,14 @@ int main(void){
 	assert(first_node->right->type == AST_BLOCK);
 	assert(first_node->right->nodes[0]->type == AST_LITERAL);
 	free(lexer_result.data);
+	parser_free(&parser);
 
-	char* code3 = "a == true }}}}";
+
+	char* code3 = "if a == true afasffafs }}}}";
 	lexer_lex(code3, &lexer_result);
-	result = parser_parse(&lexer_result);
+	parser_new(&parser, code3);
+	result = parser_parse(&parser, &lexer_result);
 	assert(result.error_count == 1);
 	free(lexer_result.data);
+	parser_free(&parser);
 }

@@ -8,6 +8,28 @@
 #include "lexer.h"
 #include "ast.h"
 
+// Struct representing an error report
+typedef struct parser_error_report {
+	// @Alloc
+	char* text;
+	Token* source;
+} Parser_Error_Report;
+
+typedef struct parser {
+	struct {
+		u64 size;
+		char* text;
+	} code;
+
+	struct {
+		// @Alloc
+		Parser_Error_Report* reports;
+		u32 size;
+		u32 capacity;
+	} error;
+
+} Parser;
+
 typedef struct parser_result {
 	u32 size;
 	Ast_Node** nodes;
@@ -15,18 +37,19 @@ typedef struct parser_result {
 	u32 error_count;
 } Parser_Result;
 
-#define MAX_PARSER_ERRORS (255)
-static u32 PARSER_ERROR_COUNT = 0;
-// Array of maximum parser errors
-static const char* PARSER_ERRORS[MAX_PARSER_ERRORS];
-// @Incomplete get source code snippet and source code location
-#define report_parser_error(str) if (PARSER_ERROR_COUNT < MAX_PARSER_ERRORS) {PARSER_ERRORS[PARSER_ERROR_COUNT++] = (str);}
-
-#define parser_error_foreach(code) { \
-for(int _i = 0; _i < PARSER_ERROR_COUNT; ++_i) { \
-    const char* it = PARSER_ERRORS[_i]; \
-    code\
+#define parser_error_foreach(__parser, __code) { \
+for(int _i = 0; _i < (__parser)->error.size; ++_i) { \
+    Parser_Error_Report it = (__parser)->error.reports[_i]; \
+    __code\
 }}
+
+#define NEXT_TOKEN(ptrptr) (*(ptrptr))++
+#define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) + 1)->token == (__token))
+#define IS_CURR_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->token == (__token))
+#define IS_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->token == (__token))
+#define PAD_TO(__end, __str) for (int _i = 0; _i < (__end); _i++) {\
+fputs(__str, stderr);\
+}
 
 typedef enum ast_result_type {
 	AST_NO_ERROR = 0,
@@ -38,17 +61,25 @@ typedef struct ast_result {
 	Ast_Node* node;
 } Ast_Result;
 
-Parser_Result parser_parse(Lexer_Result* lexer_result);
+void parser_new(Parser*, char*);
 
-Ast_Result parse_statement(Token** lexer_result);
+void parser_print_source_code_location(Parser* parser, Token* token);
 
-Ast_Result parse_if_statement(Token** token);
+void parser_report_error(Parser*, Token*, char*);
 
-Ast_Result parse_expression(Token** token);
+Parser_Result parser_parse(Parser*, Lexer_Result*);
 
-Ast_Result parse_eq_node(Ast_Node* left, Token** token);
+Ast_Result parse_statement(Parser*, Token**);
 
-Ast_Result parse_block_node(Token** token);
+Ast_Result parse_if_statement(Parser*, Token**);
+
+Ast_Result parse_expression(Parser*, Token**);
+
+Ast_Result parse_eq_node(Parser*, Ast_Node*, Token**);
+
+Ast_Result parse_block_node(Parser*, Token**);
+
+void parser_free(Parser* parser);
 
 #endif //LANG_PARSER_H
 

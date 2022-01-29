@@ -136,7 +136,7 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 	dest->string_value.data = (char*) calloc(code_size, sizeof(char));
 	dest->c0 = col + 1;
 	dest->r0 = row + 1;
-	dest->c1 = dest->c0 + code_size-1;
+	dest->c1 = dest->c0 + code_size;
 	// @Incomplete will always show the same row as r0
 	dest->r1 = row + 1;
 }

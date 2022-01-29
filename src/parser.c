@@ -6,31 +6,67 @@
 
 #include "parser.h"
 
-#define NEXT_TOKEN(ptrptr) (*ptrptr)++
+inline void parser_print_source_code_location(Parser* parser, Token* token) {
+	u32 start_col = token->c0;
+	u32 start_row = token->r0;
+	u32 end_col = token->c1;
 
-#define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*__ptrptr) + 1)->token == __token)
-#define IS_CURR_OF_TYPE(__ptrptr, __token) ((*__ptrptr)->token == __token)
-#define IS_OF_TYPE(__ptrptr, __token) ((*__ptrptr)->token == __token)
-#define CHECK_AST_ERROR(__ast_result, __ast_result_orig)\
-if (__ast_result.error != AST_NO_ERROR)\
-{__ast_result_orig.error = __ast_result; return ast_result;}
+	char* code = parser->code.text;
+	char* print_start = NULL;
 
-Ast_Result parse_eq_node(Ast_Node* left, Token** token) {
+	while (1) {
+
+		if (*code == '\0')
+			start_row--;
+
+		if (*code == '\n')
+			start_row--;
+
+		if (start_row == 1)
+			break;
+
+		code++;
+	}
+
+	print_start = code;
+
+	while (*print_start != '\n') {
+		if (*print_start == '\0') {
+			fputc('\n', stderr);
+			break;
+		} else {
+			fputc(*print_start, stderr);
+			print_start++;
+		}
+	}
+
+	PAD_TO(start_col + 1, " ")
+	PAD_TO(end_col - start_col, "^")
+	fputc('\n', stderr);
+	PAD_TO(start_col + 1, " ")
+	fputc('|', stderr);
+	fputc('\n', stderr);
+	PAD_TO(start_col + 1, "─")
+	fputs("┘", stderr);
+	fputc('\n', stderr);
+}
+
+Ast_Result parse_eq_node(Parser* parser, Ast_Node* left, Token** token) {
 	assert((*token)->token == TOK_EQ || (*token)->token == TOK_NE);
-	Ast_Result ast_result= {.error = AST_NO_ERROR, 0};
+	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
 
 	Ast_Node* equality_node = ast_node_new(NEXT_TOKEN(token));
 	ast_result.node = equality_node;
 	ast_result.node->left = left;
 
-	Ast_Result right_ast_result = parse_expression(token);
+	Ast_Result right_ast_result = parse_expression(parser, token);
 	ast_result.node->right = right_ast_result.node;
 	ast_result.error = right_ast_result.error;
 
 	return ast_result;
 }
 
-Parser_Result parser_parse(Lexer_Result* lexer_result) {
+Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
 	// @Temporary
 	u32 capacity = 16;
 	Parser_Result result = {.size= 0, .nodes = NULL};
@@ -40,13 +76,14 @@ Parser_Result parser_parse(Lexer_Result* lexer_result) {
 	Token* end = lexer_result->data + lexer_result->size;
 
 	while (parsed_tokens <= end) {
-		Ast_Result ast_result = parse_statement(&parsed_tokens);
+		Ast_Result ast_result = parse_statement(parser, &parsed_tokens);
 
 		if (ast_result.error != AST_NO_ERROR)
 			break;
 
 		// @Temporary
-		memcpy(result.nodes + result.size++, &ast_result.node, sizeof(Ast_Node**));
+		memcpy(result.nodes + result.size++, &ast_result.node,
+			   sizeof(Ast_Node**));
 		if (result.size == capacity) {
 			capacity *= 2;
 			result.nodes = reallocarray(result.nodes, capacity,
@@ -54,46 +91,47 @@ Parser_Result parser_parse(Lexer_Result* lexer_result) {
 		}
 	}
 
-	parser_error_foreach({
-		fprintf(stderr, "%s\n", it);
+	parser_error_foreach(parser, {
+		parser_print_source_code_location(parser, it.source);
+		fprintf(stderr, "%s\n", it.text);
 	})
 
-	result.error_count = PARSER_ERROR_COUNT;
-	result.errors = (char*) PARSER_ERRORS;
+	// @Incomplete return result.errors
+	result.error_count = parser->error.size;
 
 	return result;
 }
 
-Ast_Result parse_statement(Token** lexer_result) {
+Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 	Ast_Result ast_result;
 
 	if ((*lexer_result)->token == TOK_IF) {
-		ast_result = parse_if_statement(lexer_result);
+		ast_result = parse_if_statement(parser, lexer_result);
 	} else {
-		ast_result = parse_expression(lexer_result);
+		ast_result = parse_expression(parser, lexer_result);
 	}
 
 	return ast_result;
 }
 
-Ast_Result parse_if_statement(Token** token) {
+Ast_Result parse_if_statement(Parser* parser, Token** token) {
 	assert((*token)->token == TOK_IF);
-	Ast_Result ast_result= {.error = AST_NO_ERROR, 0};
+	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
 
 	Ast_Node* if_statement = ast_node_new(NEXT_TOKEN(token));
 	ast_result.node = if_statement;
 
-	Ast_Result middle_ast_result = parse_expression(token);
+	Ast_Result middle_ast_result = parse_expression(parser, token);
 	ast_result.node->middle = middle_ast_result.node;
 
 	// @Temporary
 	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
-		report_parser_error("Expected token { before IF block")
+		parser_report_error(parser, *token, "Expected token {");
 		ast_result.error = AST_ERROR;
 		return ast_result;
 	}
 
-	Ast_Result left_ast_result = parse_expression(token);
+	Ast_Result left_ast_result = parse_expression(parser, token);
 	ast_result.node->left = left_ast_result.node;
 
 	if (IS_CURR_OF_TYPE(token, TOK_ELSE)) {
@@ -101,26 +139,26 @@ Ast_Result parse_if_statement(Token** token) {
 
 		// @Temporary
 		if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
-			report_parser_error("Expected token { before ELSE block")
+			parser_report_error(parser, *token, "Expected token {");
 			ast_result.error = AST_ERROR;
 			return ast_result;
 		}
 
-		Ast_Result right_ast_result = parse_expression(token);
+		Ast_Result right_ast_result = parse_expression(parser, token);
 		ast_result.node->right = right_ast_result.node;
 	}
 
 	return ast_result;
 }
 
-Ast_Result parse_block_node(Token** token) {
+Ast_Result parse_block_node(Parser* parser, Token** token) {
 	assert((*token)->token == TOK_LBRACE);
-	Ast_Result ast_result= {.error = AST_NO_ERROR, 0};
+	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
 	Ast_Node* block_node = ast_node_new(NEXT_TOKEN(token));
 	ast_result.node = block_node;
 
-	while(!IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
-		Ast_Result node_result = parse_statement(token);
+	while (!IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
+		Ast_Result node_result = parse_statement(parser, token);
 		if (node_result.error != AST_NO_ERROR) continue;
 		ast_block_node_add_node(ast_result.node, node_result.node);
 	}
@@ -129,13 +167,13 @@ Ast_Result parse_block_node(Token** token) {
 	return ast_result;
 }
 
-Ast_Result parse_expression(Token** token) {
+Ast_Result parse_expression(Parser* parser, Token** token) {
 	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
 
 	if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
-		ast_result = parse_block_node(token);
+		ast_result = parse_block_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
-		report_parser_error("Unexpected token }")
+		parser_report_error(parser, *token, "Unexpected token }");
 		ast_result.error = AST_ERROR;
 	} else if (IS_PEEK_OF_TYPE(token, TOK_AND) ||
 			   IS_PEEK_OF_TYPE(token, TOK_OR)) {
@@ -143,11 +181,44 @@ Ast_Result parse_expression(Token** token) {
 	} else if (IS_PEEK_OF_TYPE(token, TOK_EQ) ||
 			   IS_PEEK_OF_TYPE(token, TOK_NE)) {
 		Ast_Node* node = ast_node_new(NEXT_TOKEN(token));
-		ast_result = parse_eq_node(node, token);
+		ast_result = parse_eq_node(parser, node, token);
 	} else {
 		ast_result.node = ast_node_new(NEXT_TOKEN(token));
 	}
 
 	return ast_result;
 }
+
+inline void parser_report_error(Parser* parser, Token* token, char* error_text) {
+	Parser_Error_Report error_report;
+	error_report.text = error_text;
+	error_report.source = token;
+	memcpy(parser->error.reports + parser->error.size++,
+		   &error_report,
+		   sizeof(Parser_Error_Report));
+	if (parser->error.size == parser->error.capacity) {
+		parser->error.capacity *= 2;
+		parser->error.reports =
+			reallocarray(parser->error.reports,
+						 parser->error.capacity,
+						 sizeof(Parser_Error_Report));
+	}
+
+}
+
+inline void parser_new(Parser* parser, char* code) {
+	parser->code.size = strlen(code);
+	parser->code.text = code;
+	parser->error.capacity = 16;
+	parser->error.size = 0;
+	parser->error.reports =
+		(Parser_Error_Report*) calloc(parser->error.capacity,
+									  sizeof(Parser_Error_Report));
+}
+
+inline void parser_free(Parser* parser) {
+	// @Incomplete free report.text
+	free(parser->error.reports);
+}
+
 #pragma clang diagnostic pop
