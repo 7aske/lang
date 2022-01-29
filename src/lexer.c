@@ -141,8 +141,8 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 	dest->r1 = row + 1;
 }
 
-u32 lexer_lex(char* buffer, Lexer_Result* data) {
-	char* ptr = buffer;
+u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
+	char* ptr = lexer->code.text;
 	String_Buffer* string_buffer = string_buffer_new();
 	u32 size;
 
@@ -186,7 +186,7 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 			size = lexer_eat_char(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
-				report_lexer_error("Invalid char literal")
+				lexer_report_error(lexer, TOK_LIT_CHR, col, row, "Invalid char literal");
 				break;
 			}
 			lexer_token_new(&data->data[data->size], TOK_LIT_CHR, size, col, row);
@@ -201,7 +201,7 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 			size = lexer_eat_string(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
-				report_lexer_error("Unquoted string")
+				lexer_report_error(lexer, TOK_LIT_STR, col, row, "Unquoted string");
 				break;
 			}
 
@@ -229,7 +229,7 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 
 		Token_Type token = resolve_operator(ptr);
 		if (token == TOK_INVALID) {
-			report_lexer_error("Invalid token")
+			lexer_report_error(lexer, token, col, row, "Invalid token");
 			break;
 		}
 		// Increment the pointer by the amount of characters 'eaten' by the
@@ -253,8 +253,9 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 	string_buffer_free(string_buffer);
 
 	// @Temporary
-	lexer_error_foreach({
-	   fprintf(stderr, "%s\n", it);
+	lexer_error_foreach(lexer, {
+		lexer_print_source_code_location(lexer, &it);
+		fprintf(stderr, "%s @ %s:%lu:%lu\n", it.text, "__FILE__", it.row, it.col);
 	})
 
 	return LEXER_ERROR_COUNT;
@@ -263,4 +264,83 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 
 bool lexer_is_float(const char* num_str) {
 	return strchr(num_str, '.') != NULL;
+}
+
+inline void lexer_new(Lexer* lexer, char* code) {
+	lexer->code.size = strlen(code);
+	lexer->code.text = code;
+	lexer->error.capacity = 16;
+	lexer->error.size = 0;
+	lexer->error.reports =
+		(Lexer_Error_Report*) calloc(lexer->error.capacity,
+									  sizeof(Lexer_Error_Report));
+}
+
+inline void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32 row, char* error_text) {
+	Lexer_Error_Report error_report;
+	error_report.text = error_text;
+	error_report.type = token_type;
+	error_report.col = col + 1;
+	error_report.row = row + 1;
+	memcpy(lexer->error.reports + lexer->error.size++,
+		   &error_report,
+		   sizeof(Lexer_Error_Report));
+	if (lexer->error.size == lexer->error.capacity) {
+		lexer->error.capacity *= 2;
+		lexer->error.reports =
+			reallocarray(lexer->error.reports,
+						 lexer->error.capacity,
+						 sizeof(Lexer_Error_Report));
+	}
+}
+
+void lexer_free(Lexer* lexer) {
+	lexer->error.size = 0;
+	free(lexer->error.reports);
+}
+
+// @CopyPaste
+void lexer_print_source_code_location(Lexer* lexer, Lexer_Error_Report* report) {
+	u32 start_col = report->col;
+	u32 start_row = report->row;
+	u32 end_col = report->col + 1;
+
+	char* code = lexer->code.text;
+	char* print_start = NULL;
+
+	while (1) {
+
+		if (*code == '\0')
+			start_row--;
+
+		if (*code == '\n')
+			start_row--;
+
+		if (start_row == 1)
+			break;
+
+		code++;
+	}
+
+	print_start = code;
+
+	while (*print_start != '\n') {
+		if (*print_start == '\0') {
+			fputc('\n', stderr);
+			break;
+		} else {
+			fputc(*print_start, stderr);
+			print_start++;
+		}
+	}
+
+	PAD_TO(start_col - 1, " ")
+	PAD_TO(end_col - start_col, "^")
+	fputc('\n', stderr);
+	PAD_TO(start_col - 1, " ")
+	fputc('|', stderr);
+	fputc('\n', stderr);
+	PAD_TO(start_col - 1, "─")
+	fputs("┘", stderr);
+	fputc('\n', stderr);
 }

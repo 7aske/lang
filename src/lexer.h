@@ -24,6 +24,34 @@ typedef struct lexer_result {
 	u32 size;
 } Lexer_Result;
 
+typedef struct lexer_error_report {
+	// @Alloc
+	char* text;
+	Token_Type type;
+	// @Incomplete add end col and end row
+	u32 col;
+	u32 row;
+} Lexer_Error_Report;
+
+typedef struct lexer {
+	struct {
+		u64 size;
+		char* text;
+	} code;
+
+	struct {
+		// @Alloc
+		Lexer_Error_Report* reports;
+		u32 size;
+		u32 capacity;
+	} error;
+} Lexer;
+
+// @CopyPaste
+#define PAD_TO(__end, __str) for (int _i = 0; _i < (__end); _i++) {\
+fputs(__str, stderr);\
+}
+
 #define MAX_LEXER_ERRORS (255)
 static u32 LEXER_ERROR_COUNT = 0;
 // Array of maximum lexer errors
@@ -31,9 +59,9 @@ static const char* LEXER_ERRORS[MAX_LEXER_ERRORS];
 // @Incomplete get source code snippet and source code location
 #define report_lexer_error(str) if (LEXER_ERROR_COUNT < MAX_LEXER_ERRORS) {LEXER_ERRORS[LEXER_ERROR_COUNT++] = (str);}
 
-#define lexer_error_foreach(code) { \
-for(int _i = 0; _i < LEXER_ERROR_COUNT; ++_i) { \
-    const char* it = LEXER_ERRORS[_i];     \
+#define lexer_error_foreach(__lexer, code) { \
+for(int _i = 0; _i < (__lexer)->error.size; ++_i) { \
+    Lexer_Error_Report it = (lexer)->error.reports[_i];     \
     code\
 }}
 
@@ -47,7 +75,9 @@ for(int _i = 0; _i < (result)->size; ++_i) {\
 free((result)->data);\
 }
 
-u32 lexer_lex(char*, Lexer_Result*);
+void lexer_new(Lexer*, char*);
+
+u32 lexer_lex(Lexer*, Lexer_Result*);
 
 bool lexer_startof_iden(const char*);
 
@@ -74,5 +104,11 @@ u32 lexer_eat_iden(char**, String_Buffer*);
 Token_Type lexer_eat_token(char**, String_Buffer*);
 
 u32 lexer_eat_number(char**, String_Buffer*);
+
+void lexer_report_error(Lexer*, Token_Type token_type, u32 col, u32 row, char*);
+
+void lexer_free(Lexer*);
+
+void lexer_print_source_code_location(Lexer* lexer, Lexer_Error_Report*);
 
 #endif //LANG_LEXER_H

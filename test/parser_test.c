@@ -6,9 +6,11 @@ int main(void){
 	Parser_Result result;
 	Ast_Node* first_node = NULL;
 	Parser parser;
+	Lexer lexer;
 
 	char* code1 = "if true {1} else {2};";
-	lexer_lex(code1, &lexer_result);
+	lexer_new(&lexer, code1);
+	lexer_lex(&lexer, &lexer_result);
 	parser_new(&parser, code1);
 	result = parser_parse(&parser, &lexer_result);
 
@@ -23,7 +25,8 @@ int main(void){
 	parser_free(&parser);
 
 	char* code2 = "if a == true {2} else {3};";
-	lexer_lex(code2, &lexer_result);
+	lexer_new(&lexer, code2);
+	lexer_lex(&lexer, &lexer_result);
 	parser_new(&parser, code2);
 	result = parser_parse(&parser, &lexer_result);
 
@@ -40,7 +43,8 @@ int main(void){
 	parser_free(&parser);
 
 	char* code3 = "a == true { function(); }}";
-	lexer_lex(code3, &lexer_result);
+	lexer_new(&lexer, code3);
+	lexer_lex(&lexer, &lexer_result);
 	parser_new(&parser, code3);
 	result = parser_parse(&parser, &lexer_result);
 	assert(result.error_count == 1);

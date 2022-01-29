@@ -218,6 +218,7 @@ inline void parser_new(Parser* parser, char* code) {
 
 inline void parser_free(Parser* parser) {
 	// @Incomplete free report.text
+	parser->error.size = 0;
 	free(parser->error.reports);
 }
 
