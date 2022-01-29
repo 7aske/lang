@@ -65,18 +65,18 @@ Ast_Node* ast_node_new(Token* token) {
 		ast_node->precedence = 0;
 		ast_node->size = 0;
 		ast_node->capacity = 16;
-		ast_node->nodes = (Ast_Node**) calloc(1, sizeof(Ast_Node*));
+		ast_node->nodes = (Ast_Node**) calloc(ast_node->capacity, sizeof(Ast_Node*));
 	}
 	return ast_node;
 }
 
 // Function for adding parsed AST nodes to the block node
-inline Ast_Node* ast_block_node_add_node(Ast_Node* block_node, Ast_Node* ast_node){
+inline Ast_Node* ast_block_node_add_node(Ast_Node* block_node, Ast_Node* ast_node) {
 	assert(block_node->type == AST_BLOCK);
-	memcpy(block_node->nodes + block_node->size++, &ast_node, sizeof(Ast_Node**));
+	memcpy(block_node->nodes + block_node->size++, &ast_node, sizeof(Ast_Node*));
 	if (block_node->size == block_node->capacity) {
-		block_node->capacity += 2;
-		block_node->nodes = reallocarray(block_node->nodes, block_node->capacity, sizeof(Ast_Node**));
+		block_node->capacity *= 2;
+		block_node->nodes = reallocarray(block_node->nodes, block_node->capacity, sizeof(Ast_Node*));
 	}
 	return *(block_node->nodes + block_node->size - 1);
 

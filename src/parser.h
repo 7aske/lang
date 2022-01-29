@@ -11,8 +11,9 @@
 typedef struct parser_result {
 	u32 size;
 	Ast_Node** nodes;
+	char* errors;
+	u32 error_count;
 } Parser_Result;
-
 
 #define MAX_PARSER_ERRORS (255)
 static u32 PARSER_ERROR_COUNT = 0;
@@ -23,17 +24,17 @@ static const char* PARSER_ERRORS[MAX_PARSER_ERRORS];
 
 #define parser_error_foreach(code) { \
 for(int _i = 0; _i < PARSER_ERROR_COUNT; ++_i) { \
-    const char* it = PARSER_ERRORS[_i];     \
+    const char* it = PARSER_ERRORS[_i]; \
     code\
 }}
 
 typedef enum ast_result_type {
-	AST_RESULT_OK = 0,
-	AST_RESULT_ERR
-} Ast_Result_Type;
+	AST_NO_ERROR = 0,
+	AST_ERROR
+} Ast_Error;
 
 typedef struct ast_result {
-	Ast_Result_Type type;
+	Ast_Error error;
 	Ast_Node* node;
 } Ast_Result;
 

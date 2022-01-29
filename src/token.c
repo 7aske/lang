@@ -6,7 +6,7 @@
 
 Token_Type resolve_token(char* buf, u32 size) {
 	u32 len = strnlen(buf, size);
-	for (int i = 0; i < __TOK_KEYWORD_END; ++i) {
+	for (int i = 1; i < __TOK_KEYWORD_END; ++i) {
 		const char* tok = token_value[i];
 		u32 token_len = strlen(tok);
 		if (strncmp(tok, buf, token_len) == 0 && len == token_len) {

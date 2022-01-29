@@ -14,8 +14,8 @@
 #define STR(x) #x
 
 typedef enum token_type {
-	TOK_INVALID = -1,
-	TOK_IF = 0,   // if
+	TOK_INVALID = 0,
+	TOK_IF,       // if
 	TOK_ELSE,     // else
 	TOK_FOR,      // for
 	TOK_FOREACH,  // foreach
@@ -84,6 +84,7 @@ typedef struct token {
 } Token;
 
 static const char* token_repr[] = {
+	STR(TOK_INVALID),
 	STR(TOK_IF),       // if
 	STR(TOK_ELSE),     // else
 	STR(TOK_FOR),      // for
@@ -137,6 +138,7 @@ static const char* token_repr[] = {
 
 
 static const char* token_value[] = {
+	NULL,
 	"if",
 	"else",
 	"for",

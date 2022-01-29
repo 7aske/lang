@@ -19,7 +19,7 @@ int main(void){
 	assert(first_node->right->nodes[0]->type == AST_LITERAL);
 	free(lexer_result.data);
 
-	char* code2 = "if a == true {2} else {3}; } ";
+	char* code2 = "if a == true {2} else {3};";
 	lexer_lex(code2, &lexer_result);
 	result = parser_parse(&lexer_result);
 
@@ -32,5 +32,11 @@ int main(void){
 	assert(first_node->left->nodes[0]->type == AST_LITERAL);
 	assert(first_node->right->type == AST_BLOCK);
 	assert(first_node->right->nodes[0]->type == AST_LITERAL);
+	free(lexer_result.data);
+
+	char* code3 = "a == true }}}}";
+	lexer_lex(code3, &lexer_result);
+	result = parser_parse(&lexer_result);
+	assert(result.error_count == 1);
 	free(lexer_result.data);
 }

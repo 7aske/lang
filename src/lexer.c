@@ -107,7 +107,7 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 	char c;
 	while (not_terminated(ptr)) {
 		c = *ptr;
-		// If it's the unescaped initial type of quote
+		// If it's the unescaped initial error of quote
 		if (c == quote && *(ptr - 1) != '\\') {
 			quote_count++;
 			break;
@@ -180,6 +180,8 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 			col += (int) size;
 			continue;
 		}
+
+
 		if (lexer_startof_char(ptr)) {
 			size = lexer_eat_char(&ptr, string_buffer);
 
