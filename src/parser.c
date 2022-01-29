@@ -40,13 +40,13 @@ inline void parser_print_source_code_location(Parser* parser, Token* token) {
 		}
 	}
 
-	PAD_TO(start_col + 1, " ")
+	PAD_TO(start_col - 1, " ")
 	PAD_TO(end_col - start_col, "^")
 	fputc('\n', stderr);
-	PAD_TO(start_col + 1, " ")
+	PAD_TO(start_col - 1, " ")
 	fputc('|', stderr);
 	fputc('\n', stderr);
-	PAD_TO(start_col + 1, "─")
+	PAD_TO(start_col - 1, "─")
 	fputs("┘", stderr);
 	fputc('\n', stderr);
 }
@@ -93,7 +93,7 @@ Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
 
 	parser_error_foreach(parser, {
 		parser_print_source_code_location(parser, it.source);
-		fprintf(stderr, "%s\n", it.text);
+		fprintf(stderr, "%s @ %s:%lu:%lu\n", it.text, "__FILE__", it.source->r0, it.source->c0);
 	})
 
 	// @Incomplete return result.errors

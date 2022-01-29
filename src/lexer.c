@@ -150,8 +150,8 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 	data->data = (Token*) calloc(data_size, sizeof(Token));
 	data->size = 0;
 
-	int col = 0;
-	int row = 0;
+	u32 col = 0;
+	u32 row = 0;
 	while (not_terminated(ptr)) {
 		if (isspace(*ptr)) {
 			if (*ptr == '\n') {
@@ -237,10 +237,11 @@ u32 lexer_lex(char* buffer, Lexer_Result* data) {
 		// @Optimization not the best way to do this.
 		const char* tok_val = token_value[token];
 		u32 len = strlen(tok_val);
-		ptr += len;
-
 		lexer_token_new(&data->data[data->size], token, len, col, row);
 		data->size++;
+
+		ptr += len;
+		col += len;
 
 		if (data->size == data_size) {
 			data_size *= 2;
