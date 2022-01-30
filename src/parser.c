@@ -6,6 +6,8 @@
 
 #include "parser.h"
 
+Ast_Result parse_argument_list(Parser* parser, Token** token);
+
 inline void parser_print_source_code_location(Parser* parser, Token* token) {
 	u32 start_col = token->c0;
 	u32 start_row = token->r0;
@@ -214,7 +216,36 @@ Ast_Result parse_block_node(Parser* parser, Token** token) {
 Ast_Result parse_expression(Parser* parser, Token** token) {
 	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
 
-	if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
+	// @Temporary if the previous token is an in identifier that means that
+	// we're parsing a function call
+	if (IS_CURR_OF_TYPE(token, TOK_LPAREN) &&
+		!IS_PREV_OF_TYPE(token, TOK_IDEN)) {
+		NEXT_TOKEN(token);
+		ast_result = parse_expression(parser, token);
+		ast_result.node->precedence = S32_MAX;
+
+		if (!IS_PEEK_OF_TYPE(token, TOK_RPAREN)) {
+			parser_report_error(parser, *token, "Expected token )");
+			ast_result.error = AST_ERROR;
+			return ast_result;
+		} else {
+			NEXT_TOKEN(token);
+		}
+
+		// if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		// 	return ast_result;
+		// }
+
+		Ast_Result new = parse_expression(parser, token);
+		new.node->left = ast_result.node;
+		ast_result = new;
+		// } else if (IS_PEEK_OF_TYPE(token, TOK_SCOL)) {
+		// 	ast_result.node = ast_node_new(NEXT_TOKEN(token));
+	} else if (IS_PEEK_OF_TYPE(token, TOK_RPAREN)) {
+		ast_result.node = ast_node_new(*token);
+	} else if (IS_PEEK_OF_TYPE(token, TOK_LPAREN)) {
+		ast_result = parse_argument_list(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
 		ast_result = parse_block_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_GT) ||
 			   IS_CURR_OF_TYPE(token, TOK_LT) ||
@@ -250,6 +281,15 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	return ast_result;
 }
 
+// @ToDo implement
+Ast_Result parse_argument_list(Parser* parser, Token** token) {
+	Ast_Result result;
+	while (!IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
+		NEXT_TOKEN(token);
+	}
+	return result;
+}
+
 inline void parser_report_error(Parser* parser, Token* token, char* error_text) {
 	Parser_Error_Report error_report;
 	error_report.text = error_text;
@@ -275,6 +315,7 @@ inline void parser_new(Parser* parser, char* code) {
 	parser->error.reports =
 		(Parser_Error_Report*) calloc(parser->error.capacity,
 									  sizeof(Parser_Error_Report));
+	stack_new(&parser->node_stack, sizeof(Parser_Result));
 }
 
 inline void parser_free(Parser* parser) {
@@ -285,7 +326,7 @@ inline void parser_free(Parser* parser) {
 
 inline Ast_Node* fix_precedence(Ast_Node* node) {
 	Ast_Node* retval = NULL;
-	if (node->right->precedence > node->precedence) {
+	if (node->right != NULL && node->right->precedence > node->precedence) {
 		retval = node->right;
 		Ast_Node* right_left = node->right->left;
 		node->right->left = node;

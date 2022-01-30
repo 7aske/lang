@@ -25,6 +25,25 @@ typedef signed long long int s64;
 typedef float       float32;
 typedef double      float64;
 typedef long double float128;
+
+#define S8_MAX  (0xff - 1)
+#define U8_MAX  (0xff)
+#define S16_MAX (0xffff - 1)
+#define U16_MAX (0xffff)
+#define S32_MAX (0xffffffff - 1)
+#define U32_MAX (0xffffffff)
+#define S64_MAX (0xffffffffffffffff - 1)
+#define U64_MAX (0xffffffffffffffff)
+
+#define S8_MIN  (0xff - 1)
+#define U8_MIN  (0xff)
+#define S16_MIN (0xffff - 1)
+#define U16_MIN (0xffff)
+#define S32_MIN (0xffffffff - 1)
+#define U32_MIN (0xffffffff)
+#define S64_MIN (0xffffffffffffffff - 1)
+#define U64_MIN (0xffffffffffffffff)
+
 //@formatter:on
 
 

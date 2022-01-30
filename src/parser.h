@@ -7,6 +7,7 @@
 
 #include "lexer.h"
 #include "ast.h"
+#include "stack.h"
 
 // Struct representing an error report
 typedef struct parser_error_report {
@@ -27,7 +28,7 @@ typedef struct parser {
 		u32 size;
 		u32 capacity;
 	} error;
-
+	Stack node_stack;
 } Parser;
 
 typedef struct parser_result {
@@ -45,6 +46,7 @@ for(int _i = 0; _i < (__parser)->error.size; ++_i) { \
 
 #define NEXT_TOKEN(ptrptr) (*(ptrptr))++
 #define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) + 1)->type == (__token))
+#define IS_PREV_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) - 1)->type == (__token))
 #define IS_CURR_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->type == (__token))
 #define IS_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->token == (__token))
 #define PAD_TO(__end, __str) for (int _i = 0; _i < (__end); _i++) {\

@@ -58,8 +58,9 @@ typedef struct ast_node {
 			u32 capacity;
 		};
 	};
-	int precedence;
+	s32 precedence;
 	Ast_Node_Type type;
+	Token token;
 } Ast_Node;
 
 Ast_Node* ast_node_new(Token* token);

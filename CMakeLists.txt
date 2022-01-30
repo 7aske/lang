@@ -13,9 +13,13 @@ set(SOURCE_FILES
         src/parser.c
         src/parser.h
         src/ast.c
-        src/ast.h)
+        src/ast.h
+        src/stack.c
+        src/stack.h
+        src/stdtypes.h
+        )
 
-add_executable(lang main.c ${SOURCE_FILES} src/stdtypes.h)
+add_executable(lang main.c ${SOURCE_FILES})
 
 # TESTS
 include(CTest)

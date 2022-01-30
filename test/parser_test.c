@@ -42,7 +42,7 @@ int main(void) {
 	free(lexer_result.data);
 	parser_free(&parser);
 
-	char* code3 = "a == true { function(); }}";
+	char* code3 = "a == true { function; }}";
 	lexer_new(&lexer, code3);
 	lexer_lex(&lexer, &lexer_result);
 	parser_new(&parser, code3);
@@ -69,6 +69,23 @@ int main(void) {
 	assert(result.error_count == 0);
 	assert(first_node->type == AST_IF);
 	assert(first_node->middle->type == AST_BOOLEAN);
+	free(lexer_result.data);
+	parser_free(&parser);
+
+	char* code5 = "if (a == (b)) || b {"
+				  "} else {"
+				  "}";
+	lexer_new(&lexer, code5);
+	lexer_lex(&lexer, &lexer_result);
+	parser_new(&parser, code5);
+	result = parser_parse(&parser, &lexer_result);
+	first_node = result.nodes[0];
+	assert(result.error_count == 0);
+	assert(first_node->type == AST_IF);
+	assert(first_node->middle->type == AST_BOOLEAN);
+	assert(first_node->middle->left->type == AST_EQUALITY);
+	assert(first_node->middle->right->type == AST_IDENT);
+	assert(first_node->middle->token.type == TOK_OR);
 	free(lexer_result.data);
 	parser_free(&parser);
 

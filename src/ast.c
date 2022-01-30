@@ -58,6 +58,7 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 }
 
 Ast_Node* ast_node_new(Token* token) {
+	assert(token->type != TOK_RPAREN);
 	Ast_Node* ast_node = (Ast_Node*) calloc(1, sizeof(Ast_Node));
 	ast_node->type = convert_token_to_ast_node_type(token->type);
 	ast_node->precedence = 0; // default
@@ -78,6 +79,8 @@ Ast_Node* ast_node_new(Token* token) {
 	} else if (ast_node->type == AST_ASSIGN) {
 		ast_node->precedence = AST_ASSIGN_PRECEDENCE;
 	}
+
+	memcpy(&ast_node->token, token, sizeof(Token));
 
 	return ast_node;
 }
