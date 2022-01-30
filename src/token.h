@@ -28,7 +28,9 @@ typedef enum token_type {
 	TOK_IMPRT,    // import
 	TOK_INCL,     // include
 	TOK_AS,       // as
-	TOK_ARRW,     // =>
+	TOK_FN,       // fn
+	TOK_FAT_ARRW, // =>
+	TOK_THIN_ARRW,// ->
 	TOK_ASSN,     // =
 	TOK_DQM,      // ??
 	TOK_QM,       // ?
@@ -98,7 +100,9 @@ static const char* token_repr[] = {
 	STR(TOK_IMPRT),    // import
 	STR(TOK_INCL),     // include
 	STR(TOK_AS),       // as
-	STR(TOK_ARRW),     // =>
+	STR(TOK_FN),       // fn
+	STR(TOK_FAT_ARRW), // =>
+	STR(TOK_THIN_ARRW),// ->
 	STR(TOK_ASSN),     // =
 	STR(TOK_DQM),      // ??
 	STR(TOK_QM),       // ?
@@ -152,7 +156,9 @@ static const char* token_value[] = {
 	"import",
 	"include",
 	"as",
+	"fn",
 	"=>",
+	"->",
 	"=",
 	"??",
 	"?",

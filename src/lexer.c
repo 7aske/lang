@@ -212,7 +212,7 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
 			continue;
 		}
 
-		if (lexer_startof_number(ptr)) {
+		if (lexer_startof_number(ptr) && PEEK_NEXT(ptr) != '>') {
 			size = lexer_eat_number(&ptr, string_buffer);
 			Token_Type token = TOK_LIT_INT;
 			// @Incomplete validate float not having multiple decimal points
@@ -258,7 +258,7 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
 		fprintf(stderr, "%s @ %s:%lu:%lu\n", it.text, "__FILE__", it.row, it.col);
 	})
 
-	return LEXER_ERROR_COUNT;
+	return lexer->error.size;
 }
 
 

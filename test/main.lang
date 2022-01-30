@@ -1,11 +1,15 @@
 str1: string = "davide ovo je string";
-str2: string = 'davide ovo je isto string';
+str2: string = 'd';
 str3: string = `a i ovo string`;
 
-int a = 10;
 a: int = 10;
 float f = 10.1401;
 long a = 100_000_000;
-if (true) {
+
+fn write(file: File, count: u64, byte: u32) -> void {
+
+}
+
+if true {
 	write(stdout, 1, a);
 }

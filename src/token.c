@@ -56,6 +56,8 @@ Token_Type resolve_operator(const char* ptr) {
 	if (*ptr == '-') {
 		if (*(ptr + 1) == '-') {
 			return TOK_DEC;
+		} else if (*(ptr + 1) == '>') {
+			return TOK_THIN_ARRW;
 		} else {
 			return TOK_SUB;
 		}
@@ -83,7 +85,7 @@ Token_Type resolve_operator(const char* ptr) {
 		if (*(ptr + 1) == '=') {
 			return TOK_EQ;
 		} else if (*(ptr + 1) == '>') {
-			return TOK_ARRW;
+			return TOK_FAT_ARRW;
 		} else {
 			return TOK_ASSN;
 		}

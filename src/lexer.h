@@ -52,12 +52,7 @@ typedef struct lexer {
 fputs(__str, stderr);\
 }
 
-#define MAX_LEXER_ERRORS (255)
-static u32 LEXER_ERROR_COUNT = 0;
-// Array of maximum lexer errors
-static const char* LEXER_ERRORS[MAX_LEXER_ERRORS];
-// @Incomplete get source code snippet and source code location
-#define report_lexer_error(str) if (LEXER_ERROR_COUNT < MAX_LEXER_ERRORS) {LEXER_ERRORS[LEXER_ERROR_COUNT++] = (str);}
+#define PEEK_NEXT(ptr) *((ptr) + 1)
 
 #define lexer_error_foreach(__lexer, code) { \
 for(int _i = 0; _i < (__lexer)->error.size; ++_i) { \
