@@ -4,7 +4,7 @@
 
 #include "lexer.h"
 
-// Checks if the string is starting with a valid identifier token.
+// Checks if the string is starting with a valid identifier type.
 inline bool lexer_startof_iden(const char* ptr) {
 	return isalpha(*ptr) || *ptr == '$' || *ptr == '_';
 }
@@ -51,7 +51,8 @@ Token_Type lexer_eat_token(char** code, String_Buffer* string_buffer) {
 	Token_Type retval = TOK_INVALID;
 	while (!isspace(*ptr)) {
 		string_buffer_append_char(string_buffer, *ptr++);
-		Token_Type token = resolve_token(string_buffer->data, string_buffer->size);
+		Token_Type token = resolve_token(string_buffer->data,
+										 string_buffer->size);
 		if (token != TOK_INVALID) {
 			retval = token;
 			break;
@@ -131,9 +132,16 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 }
 
 void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 row) {
-	dest->token = token;
-	dest->string_value.size = code_size;
-	dest->string_value.data = (char*) calloc(code_size, sizeof(char));
+	dest->type = token;
+	// @Incomplete
+	if (token == TOK_LIT_STR || token == TOK_IDEN || token == TOK_LIT_CHR) {
+		dest->string_value.size = code_size;
+		dest->string_value.data = (char*) calloc(code_size + 1, sizeof(char));
+	} else if (token == TOK_LIT_FLT) {
+		dest->float64_value = 0;
+	} else if (token == TOK_LIT_INT || token == TOK_TRUE || token == TOK_FALSE) {
+		dest->integer_value = 0;
+	}
 	dest->c0 = col + 1;
 	dest->r0 = row + 1;
 	dest->c1 = dest->c0 + code_size;
@@ -141,14 +149,14 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 	dest->r1 = row + 1;
 }
 
-u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
+u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
 	char* ptr = lexer->code.text;
 	String_Buffer* string_buffer = string_buffer_new();
 	u32 size;
 
-	u32 data_size = 32;
-	data->data = (Token*) calloc(data_size, sizeof(Token));
-	data->size = 0;
+	result->capacity = 16;
+	result->size = 0;
+	result->data = (Token*) calloc(result->capacity, sizeof(Token));
 
 	u32 col = 0;
 	u32 row = 0;
@@ -170,15 +178,17 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
 		if (lexer_startof_iden(ptr)) {
 			size = lexer_eat_iden(&ptr, string_buffer);
 			Token_Type possible_token = resolve_token(string_buffer->data, size);
+			// If the result is TOK_INVALID that means that the parsed word is
+			// an identifier.
 			if (possible_token == TOK_INVALID) {
-				lexer_token_new(&data->data[data->size], TOK_IDEN, size, col, row);
-				strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size);
+				lexer_token_new(&result->data[result->size], TOK_IDEN, size, col, row);
+				strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->size);
 			} else {
-				lexer_token_new(&data->data[data->size], possible_token, size, col, row);
+				lexer_token_new(&result->data[result->size], possible_token, size, col, row);
 			}
-			data->size++;
+			result->size++;
 			col += (int) size;
-			continue;
+			goto resize;
 		}
 
 
@@ -189,12 +199,11 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
 				lexer_report_error(lexer, TOK_LIT_CHR, col, row, "Invalid char literal");
 				break;
 			}
-			lexer_token_new(&data->data[data->size], TOK_LIT_CHR, size, col, row);
-			strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size + 1);
-			data->size++;
+			lexer_token_new(&result->data[result->size], TOK_LIT_CHR, size, col, row);
+			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->size + 1);
+			result->size++;
 			col += 2 + size; // 2 is for two quotes;
-
-			continue;
+			goto resize;
 		}
 
 		if (lexer_startof_string(ptr)) {
@@ -205,11 +214,11 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
 				break;
 			}
 
-			lexer_token_new(&data->data[data->size], TOK_LIT_STR, size, col, row);
-			strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size + 1);
-			data->size++;
+			lexer_token_new(&result->data[result->size], TOK_LIT_STR, string_buffer->size, col, row);
+			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->size + 1);
+			result->size++;
 			col += (int) size;
-			continue;
+			goto resize;
 		}
 
 		if (lexer_startof_number(ptr) && PEEK_NEXT(ptr) != '>') {
@@ -220,11 +229,17 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
 				token = TOK_LIT_FLT;
 			}
 
-			lexer_token_new(&data->data[data->size], token, size, col, row);
-			strncpy(data->data[data->size].string_value.data, string_buffer->data, string_buffer->size);
-			data->size++;
+			lexer_token_new(&result->data[result->size], token, size, col, row);
+			if (token == TOK_LIT_INT) {
+				s64 val = strtoll(string_buffer->data, NULL, 10);
+				result->data[result->size].integer_value = val;
+			} else {
+				float64 val = strtod(string_buffer->data, NULL);
+				result->data[result->size].float64_value = val;
+			}
+			result->size++;
 			col += (int) size;
-			continue;
+			goto resize;
 		}
 
 		Token_Type token = resolve_operator(ptr);
@@ -237,15 +252,17 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* data) {
 		// @Optimization not the best way to do this.
 		const char* tok_val = token_value[token];
 		u32 len = strlen(tok_val);
-		lexer_token_new(&data->data[data->size], token, len, col, row);
-		data->size++;
+		lexer_token_new(&result->data[result->size], token, len, col, row);
+		result->size++;
 
 		ptr += len;
 		col += len;
 
-		if (data->size == data_size) {
-			data_size *= 2;
-			data->data = realloc(data->data, data_size * sizeof(Token));
+		resize:
+		if (result->size == result->capacity) {
+			result->capacity *= 2;
+			result->data = reallocarray(result->data, result->capacity,
+										sizeof(Token));
 		}
 
 	}
@@ -297,6 +314,7 @@ inline void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32
 void lexer_free(Lexer* lexer) {
 	lexer->error.size = 0;
 	free(lexer->error.reports);
+	lexer->error.reports = NULL;
 }
 
 // @CopyPaste

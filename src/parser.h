@@ -44,8 +44,8 @@ for(int _i = 0; _i < (__parser)->error.size; ++_i) { \
 }}
 
 #define NEXT_TOKEN(ptrptr) (*(ptrptr))++
-#define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) + 1)->token == (__token))
-#define IS_CURR_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->token == (__token))
+#define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) + 1)->type == (__token))
+#define IS_CURR_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->type == (__token))
 #define IS_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->token == (__token))
 #define PAD_TO(__end, __str) for (int _i = 0; _i < (__end); _i++) {\
 fputs(__str, stderr);\
@@ -77,9 +77,15 @@ Ast_Result parse_expression(Parser*, Token**);
 
 Ast_Result parse_eq_node(Parser*, Ast_Node*, Token**);
 
+Ast_Result parse_boolean_node(Parser* p_parser, Ast_Node* p_node, Token** p_token);
+
+Ast_Result parse_relational_node(Parser* parser, Ast_Node* left, Token** token);
+
 Ast_Result parse_block_node(Parser*, Token**);
 
 void parser_free(Parser* parser);
+
+Ast_Node* fix_precedence(Ast_Node*);
 
 #endif //LANG_PARSER_H
 

@@ -22,6 +22,7 @@ typedef enum lexer_error {
 typedef struct lexer_result {
 	Token* data;
 	u32 size;
+	u32 capacity;
 } Lexer_Result;
 
 typedef struct lexer_error_report {

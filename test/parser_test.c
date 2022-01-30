@@ -1,6 +1,6 @@
 #include "parser.h"
 
-int main(void){
+int main(void) {
 
 	Lexer_Result lexer_result;
 	Parser_Result result;
@@ -49,5 +49,27 @@ int main(void){
 	result = parser_parse(&parser, &lexer_result);
 	assert(result.error_count == 1);
 	free(lexer_result.data);
+	// parser_free(&parser);
+
+	char* code4 = "if a == b || b > c && c < d {"
+				  "	print(a,b,c);"
+				  "	print(\"Hello world!\");"
+				  "	b = `David je najjaci!`"
+				  "} else {"
+				  " a = 42;"
+				  " b = 42;"
+				  " c = 42;"
+				  " d = 42;"
+				  "}";
+	lexer_new(&lexer, code4);
+	lexer_lex(&lexer, &lexer_result);
+	parser_new(&parser, code4);
+	result = parser_parse(&parser, &lexer_result);
+	first_node = result.nodes[0];
+	assert(result.error_count == 0);
+	assert(first_node->type == AST_IF);
+	assert(first_node->middle->type == AST_BOOLEAN);
+	free(lexer_result.data);
 	parser_free(&parser);
+
 }

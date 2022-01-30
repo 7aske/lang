@@ -29,6 +29,7 @@ typedef enum token_type {
 	TOK_INCL,     // include
 	TOK_AS,       // as
 	TOK_FN,       // fn
+	TOK_RETURN,   // return
 	TOK_FAT_ARRW, // =>
 	TOK_THIN_ARRW,// ->
 	TOK_ASSN,     // =
@@ -71,18 +72,19 @@ typedef enum token_type {
 } Token_Type;
 
 typedef struct token {
-	Token_Type token;
-	union {
-		char* name;
-		s64 integer_value;
-		float32 float32_value;
-		float64 float64_value;
-		struct { u32 size; char* data; } string_value;
-	};
+	Token_Type type;
 	u32 c0; // Token start column
 	u32 r0; // Token start row
 	u32 c1; // Token end   column
 	u32 r1; // Token end   row
+
+	union {
+		s64 integer_value;
+		// @Incomplete implement 32bit float
+		// float32 float32_value;
+		float64 float64_value;
+		struct { u32 size; char* data; } string_value;
+	};
 } Token;
 
 static const char* token_repr[] = {
@@ -101,6 +103,7 @@ static const char* token_repr[] = {
 	STR(TOK_INCL),     // include
 	STR(TOK_AS),       // as
 	STR(TOK_FN),       // fn
+	STR(TOK_RETURN),   // return
 	STR(TOK_FAT_ARRW), // =>
 	STR(TOK_THIN_ARRW),// ->
 	STR(TOK_ASSN),     // =
@@ -157,6 +160,7 @@ static const char* token_value[] = {
 	"include",
 	"as",
 	"fn",
+	"return",
 	"=>",
 	"->",
 	"=",
@@ -197,7 +201,6 @@ Token_Type resolve_operator(const char* ptr);
 #define SIZE_data_array(data) (sizeof(data)/sizeof((data)[0]))
 
 static_assert(__TOK_SIZE == SIZE_data_array(token_repr), "Missing token repr");
-static_assert(__TOK_SIZE == SIZE_data_array(token_value),
-			  "Missing token value");
+static_assert(__TOK_SIZE == SIZE_data_array(token_value), "Missing token value");
 
 #endif //LANG_TOKEN_H

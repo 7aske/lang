@@ -59,14 +59,26 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 
 Ast_Node* ast_node_new(Token* token) {
 	Ast_Node* ast_node = (Ast_Node*) calloc(1, sizeof(Ast_Node));
-	ast_node->type = convert_token_to_ast_node_type(token->token);
+	ast_node->type = convert_token_to_ast_node_type(token->type);
+	ast_node->precedence = 0; // default
+
 	// We do this only in the case of block nodes
 	if (ast_node->type == AST_BLOCK) {
-		ast_node->precedence = 0;
 		ast_node->size = 0;
 		ast_node->capacity = 16;
 		ast_node->nodes = (Ast_Node**) calloc(ast_node->capacity, sizeof(Ast_Node*));
 	}
+
+	if (ast_node->type == AST_BOOLEAN) {
+		ast_node->precedence = AST_BOOLEAN_PRECEDENCE;
+	} else if (ast_node->type == AST_EQUALITY) {
+		ast_node->precedence = AST_EQUALITY_PRECEDENCE;
+	} else if (ast_node->type == AST_RELATIONAL) {
+		ast_node->precedence = AST_RELATIONAL_PRECEDENCE;
+	} else if (ast_node->type == AST_ASSIGN) {
+		ast_node->precedence = AST_ASSIGN_PRECEDENCE;
+	}
+
 	return ast_node;
 }
 
