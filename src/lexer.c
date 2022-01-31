@@ -41,9 +41,9 @@ u32 lexer_eat_iden(char** code, String_Buffer* string_buffer) {
 	while (lexer_is_iden(ptr)) {
 		string_buffer_append_char(string_buffer, *ptr++);
 	}
-	(*code) += string_buffer->size;
+	(*code) += string_buffer->count;
 
-	return string_buffer->size;
+	return string_buffer->count;
 }
 
 Token_Type lexer_eat_token(char** code, String_Buffer* string_buffer) {
@@ -52,13 +52,13 @@ Token_Type lexer_eat_token(char** code, String_Buffer* string_buffer) {
 	while (!isspace(*ptr)) {
 		string_buffer_append_char(string_buffer, *ptr++);
 		Token_Type token = resolve_token(string_buffer->data,
-										 string_buffer->size);
+										 string_buffer->count);
 		if (token != TOK_INVALID) {
 			retval = token;
 			break;
 		}
 	}
-	(*code) += string_buffer->size;
+	(*code) += string_buffer->count;
 
 	return retval;
 }
@@ -82,9 +82,9 @@ u32 lexer_eat_number(char** code, String_Buffer* string_buffer) {
 			ptr++;
 		}
 	}
-	(*code) += string_buffer->size + placeholder_offset;
+	(*code) += string_buffer->count + placeholder_offset;
 
-	return string_buffer->size;
+	return string_buffer->count;
 }
 
 Lexer_Error lexer_eat_char(char** code, String_Buffer* string_buffer) {
@@ -125,9 +125,9 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 		return LEXER_FAILED;
 	}
 
-	(*code) += string_buffer->size + quote_count;
+	(*code) += string_buffer->count + quote_count;
 
-	return string_buffer->size + quote_count;
+	return string_buffer->count + quote_count;
 
 }
 
@@ -182,7 +182,7 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
 			// an identifier.
 			if (possible_token == TOK_INVALID) {
 				lexer_token_new(&result->data[result->size], TOK_IDEN, size, col, row);
-				strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->size);
+				strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->count);
 			} else {
 				lexer_token_new(&result->data[result->size], possible_token, size, col, row);
 			}
@@ -200,7 +200,7 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
 				break;
 			}
 			lexer_token_new(&result->data[result->size], TOK_LIT_CHR, size, col, row);
-			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->size + 1);
+			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->count + 1);
 			result->size++;
 			col += 2 + size; // 2 is for two quotes;
 			goto resize;
@@ -214,8 +214,8 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
 				break;
 			}
 
-			lexer_token_new(&result->data[result->size], TOK_LIT_STR, string_buffer->size, col, row);
-			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->size + 1);
+			lexer_token_new(&result->data[result->size], TOK_LIT_STR, string_buffer->count, col, row);
+			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->count + 1);
 			result->size++;
 			col += (int) size;
 			goto resize;

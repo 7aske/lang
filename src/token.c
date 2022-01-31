@@ -125,5 +125,6 @@ Token_Type resolve_operator(const char* ptr) {
 	if (*ptr == '}') {
 		return TOK_RBRACE;
 	}
+
 	return TOK_INVALID;
 }

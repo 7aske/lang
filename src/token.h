@@ -1,6 +1,18 @@
 //
 // Created by nik on 1/25/22.
 //
+/**
+ *
+ * Token is a smallest chunk of information that can be extracted from program
+ * text. All instructions in the language consist of one or more tokens. Tokens
+ * represent concepts as arithmetic/boolean operations, user-defined types,
+ * various types of literals etc.
+ *
+ * token.h defines all of the tokens that the lexer should be able to parse.
+ * Additionally, token.h provides a list of both code and debug string representations
+ * of each individual token. Tokens that do not have string representations are
+ * ones that can be user-defined (literals, identifiers...).
+ */
 
 #ifndef LANG_TOKEN_H
 #define LANG_TOKEN_H
@@ -11,8 +23,14 @@
 
 #include "stdtypes.h"
 
+// Returns enum or #define as a string
 #define STR(x) #x
 
+// Enumeration of all possible token types. When adding keywords or operators
+// they must be places above __KEYWORD_END marker enum. When adding tokens that
+// do not have string representations they must be added between __KEYWORD_END
+// and __TOK_SIZE. __KEYWORD_END and __TOK_SIZE are utility makers that
+// help when iterating over all existing enum values.
 typedef enum token_type {
 	TOK_INVALID = 0,
 	TOK_IF,       // if
@@ -68,9 +86,9 @@ typedef enum token_type {
 	TOK_LIT_INT,
 	TOK_LIT_FLT,
 	__TOK_SIZE
-	// keywords
 } Token_Type;
 
+// Struct representing a lexer-processed token.
 typedef struct token {
 	Token_Type type;
 	u32 c0; // Token start column
@@ -87,6 +105,7 @@ typedef struct token {
 	};
 } Token;
 
+// Debug string representation of token_type enum
 static const char* token_repr[] = {
 	STR(TOK_INVALID),
 	STR(TOK_IF),       // if
@@ -143,9 +162,9 @@ static const char* token_repr[] = {
 	STR(TOK_LIT_FLT),
 };
 
-
+// Code values of all token types.
 static const char* token_value[] = {
-	NULL,
+	NULL, // TOK_INVALID
 	"if",
 	"else",
 	"for",
@@ -192,14 +211,31 @@ static const char* token_value[] = {
 	"}",
 	"[",
 	"]",
+	// Literals do not have their representations.
 	NULL, NULL, NULL, NULL, NULL, NULL
 };
 
-Token_Type resolve_token(char*, u32);
+/**
+ * Resolves arbitrary text contained in the buffer into a token.
+ *
+ * @param buffer Code text buffer.
+ * @param size   Size of the text buffer.
+ * @return       Resolved token or TOK_INVALID if the text cannot be resolved.
+ */
+Token_Type resolve_token(char* buffer, u32 size);
+
+/**
+ * Resolves an operator type token from the text pointed by the pointer ptr.
+ *
+ * @param ptr Pointer to the text buffer containing the text to be parsed.
+ * @return Resolved operator token or TOK_INVALID if the text cannot be resolved.
+ */
 Token_Type resolve_operator(const char* ptr);
 
 #define SIZE_data_array(data) (sizeof(data)/sizeof((data)[0]))
 
+// Static check for whether value array and repr array have corresponding values
+// for all defined tokens.
 static_assert(__TOK_SIZE == SIZE_data_array(token_repr), "Missing token repr");
 static_assert(__TOK_SIZE == SIZE_data_array(token_value), "Missing token value");
 
