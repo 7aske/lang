@@ -110,7 +110,7 @@ Ast_Result parse_binary_operation_node(Parser* parser, Token** token) {
 }
 
 Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
-	// @Temporary
+	// @Temporary - move to result struct
 	u32 capacity = 16;
 	Parser_Result result = {.size= 0, .nodes = NULL};
 	result.nodes = (Ast_Node**) calloc(capacity, sizeof(Ast_Node*));
@@ -140,8 +140,11 @@ Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
 				it.source->c0);
 	})
 
-	// @Incomplete return result.errors
-	result.error_count = parser->error.size;
+	// As we are done parsing we can copy error related data to the result struct.
+	result.error.count = parser->error.size;
+	result.error.reports = parser->error.reports;
+	parser->error.size = 0;
+	parser->error.reports = NULL;
 
 	return result;
 }

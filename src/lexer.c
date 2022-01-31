@@ -46,24 +46,6 @@ u32 lexer_eat_iden(char** code, String_Buffer* string_buffer) {
 	return string_buffer->count;
 }
 
-Token_Type lexer_eat_token(char** code, String_Buffer* string_buffer) {
-	char* ptr = *code;
-	Token_Type retval = TOK_INVALID;
-	while (!isspace(*ptr)) {
-		string_buffer_append_char(string_buffer, *ptr++);
-		Token_Type token = resolve_token(string_buffer->data,
-										 string_buffer->count);
-		if (token != TOK_INVALID) {
-			retval = token;
-			break;
-		}
-	}
-	(*code) += string_buffer->count;
-
-	return retval;
-}
-
-
 u32 lexer_eat_number(char** code, String_Buffer* string_buffer) {
 	char* ptr = *code;
 	// First iteration has a different condition than the rest of the loop

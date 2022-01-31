@@ -88,13 +88,26 @@ typedef enum token_type {
 	__TOK_SIZE
 } Token_Type;
 
-// Struct representing a lexer-processed token.
+/**
+ * Struct representing a lexer-processed token.
+ *
+ * @param type Type of the token.
+ * @param c0 Token start column.
+ * @param r0 Token start row.
+ * @param c1 Token end   column.
+ * @param r1 Token end   row.
+ * @param integer_value Integer value of the token.
+ * @param float_value   Floating point value of the token.
+ * @struct string_value String value of the token.
+ * @struct string_value.size Size of the string value buffer.
+ * @struct string_value.data Heap-allocated string value buffer.
+ */
 typedef struct token {
 	Token_Type type;
-	u32 c0; // Token start column
-	u32 r0; // Token start row
-	u32 c1; // Token end   column
-	u32 r1; // Token end   row
+	u32 c0;
+	u32 r0;
+	u32 c1;
+	u32 r1;
 
 	union {
 		s64 integer_value;

@@ -51,8 +51,6 @@ int main(int argc, char** argv) {
 			   data == NULL ? text : data);
 	}
 
-	LEXER_RESULT_DATA_FREE(&parsed)
-
 	printf("\n%s\n", code_text);
 
 	free(code_text);

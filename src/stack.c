@@ -21,19 +21,21 @@ inline void stack_new(Stack* stack, u64 size) {
 }
 
 inline void stack_push(Stack* stack, void* data) {
+	// Before every push to the stack we verify that it has enough space.
 	stack_realloc(stack);
 	memcpy(stack->data + stack->count++, data, stack->size);
 }
 
 inline bool stack_pop(Stack* stack, void* dest) {
 	if (stack_is_empty(stack)) return false;
+	// If we do not provide the destination of where to copy the popped element
+	// we just decrement the "stack pointer".
 	if (dest == NULL)  {
 		stack->count--;
-		return true;
 	} else {
 		memcpy(dest, stack->data + --stack->count, stack->size);
-		return true;
 	}
+	return true;
 }
 
 inline void* stack_peek(Stack* stack) {
