@@ -12,7 +12,7 @@ inline bool lexer_startof_iden(const char* ptr) {
 // Checks if the string starts with a valid number literal character.
 // @Incomplete maybe handle scientific notation.
 inline bool lexer_startof_number(const char* ptr) {
-	return isdigit(*ptr) || *ptr == '-' || *ptr == '.' || *ptr == '+';
+	return isdigit(*ptr) || *ptr == '-' || *ptr == '.';
 }
 
 // Checks if the string is a valid number character

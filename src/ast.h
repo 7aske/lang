@@ -38,10 +38,19 @@ typedef enum ast_node_type {
 
 } Ast_Node_Type;
 
-#define AST_BOOLEAN_PRECEDENCE     80
-#define AST_EQUALITY_PRECEDENCE    50
-#define AST_RELATIONAL_PRECEDENCE  50
-#define AST_ASSIGN_PRECEDENCE      100
+// Operator precedence
+#define AST_PREFIX_PRECEDENCE      120
+#define AST_POSTFIX_PRECEDENCE     110
+#define AST_NOT_PRECEDENCE         110
+#define AST_PLUS_PRECEDENCE        110
+#define AST_MINUS_PRECEDENCE       110
+#define AST_MUL_DIV_MOD_PRECEDENCE 100
+#define AST_ADD_SUB_PRECEDENCE     90
+#define AST_RELATIONAL_PRECEDENCE  80
+#define AST_EQUALITY_PRECEDENCE    70
+#define AST_AND_PRECEDENCE         60
+#define AST_OR_PRECEDENCE          50
+#define AST_ASSIGN_PRECEDENCE      40
 
 typedef struct ast_node {
 	union {

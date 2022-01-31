@@ -82,7 +82,7 @@ Ast_Result parse_expression(Parser*, Token**);
 
 Ast_Result parse_boolean_node(Parser*, Token**);
 
-Ast_Result parse_relational_node(Parser*, Token**);
+Ast_Result parse_binary_operation_node(Parser* parser, Token** token);
 
 Ast_Result parse_block_node(Parser*, Token**);
 

@@ -75,13 +75,18 @@ Ast_Result parse_boolean_node(Parser* parser, Token** token) {
 	return boolean_node;
 }
 
-Ast_Result parse_relational_node(Parser* parser, Token** token) {
-	assert((*token)->type == TOK_GT ||
-		   (*token)->type == TOK_LT ||
-		   (*token)->type == TOK_GE ||
-		   (*token)->type == TOK_LE ||
-		   (*token)->type == TOK_NE ||
-		   (*token)->type == TOK_EQ
+Ast_Result parse_binary_operation_node(Parser* parser, Token** token) {
+	assert(IS_CURR_OF_TYPE(token, TOK_GT) ||
+		   IS_CURR_OF_TYPE(token, TOK_LT) ||
+		   IS_CURR_OF_TYPE(token, TOK_GE) ||
+		   IS_CURR_OF_TYPE(token, TOK_LE) ||
+		   IS_CURR_OF_TYPE(token, TOK_NE) ||
+		   IS_CURR_OF_TYPE(token, TOK_EQ) ||
+		   IS_CURR_OF_TYPE(token, TOK_ADD) ||
+		   IS_CURR_OF_TYPE(token, TOK_SUB) ||
+		   IS_CURR_OF_TYPE(token, TOK_MUL) ||
+		   IS_CURR_OF_TYPE(token, TOK_DIV) ||
+		   IS_CURR_OF_TYPE(token, TOK_MOD)
 	);
 
 	Ast_Result left_ast_result;
@@ -91,17 +96,17 @@ Ast_Result parse_relational_node(Parser* parser, Token** token) {
 		PARSER_POP(&left_ast_result);
 	}
 
-	Ast_Result relational_node = parser_create_node(parser, token);
-	relational_node.node->left = left_ast_result.node;
+	Ast_Result binary_node = parser_create_node(parser, token);
+	binary_node.node->left = left_ast_result.node;
 
 	Ast_Result right_ast_result = parse_expression(parser, token);
-	relational_node.node->right = right_ast_result.node;
-	relational_node.error = right_ast_result.error;
+	binary_node.node->right = right_ast_result.node;
+	binary_node.error = right_ast_result.error;
 
-	if (relational_node.error == AST_NO_ERROR)
-		relational_node.node = fix_precedence(relational_node.node);
+	if (binary_node.error == AST_NO_ERROR)
+		binary_node.node = fix_precedence(binary_node.node);
 
-	return relational_node;
+	return binary_node;
 }
 
 Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
@@ -216,11 +221,11 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		NEXT_TOKEN(token);
 		ast_result = parse_expression(parser, token);
 
-		// if (!IS_PEEK_OF_TYPE(token, TOK_RPAREN)) {
-		// 	parser_report_error(parser, *token, "Expected token )");
-		// 	ast_result.error = AST_ERROR;
-		// 	return ast_result;
-		// }
+		if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+			parser_report_error(parser, *token, "Expected token )");
+			ast_result.error = AST_ERROR;
+			return ast_result;
+		}
 
 		stack_push(&parser->node_stack, &ast_result);
 
@@ -228,10 +233,11 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		Ast_Result new = parse_expression(parser, token);
 		if (new.node == NULL)
 			return ast_result;
-		new.node->precedence = S32_MAX;
-		new.node->left = ast_result.node;
+		ast_result.node->precedence = S32_MAX;
+		// new.node->left = ast_result.node;
 
-		fix_precedence(new.node);
+		new.node = fix_precedence(new.node);
+		// new.node = fix_precedence(new.node);
 
 		return new;
 	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
@@ -259,10 +265,15 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 			   IS_CURR_OF_TYPE(token, TOK_GT) ||
 			   IS_CURR_OF_TYPE(token, TOK_LT) ||
 			   IS_CURR_OF_TYPE(token, TOK_GE) ||
-			   IS_CURR_OF_TYPE(token, TOK_LE)) {
-		ast_result = parse_relational_node(parser, token);
-	// } else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
-	// 	PARSER_POP(&ast_result);
+			   IS_CURR_OF_TYPE(token, TOK_LE) ||
+			   IS_CURR_OF_TYPE(token, TOK_ADD) ||
+			   IS_CURR_OF_TYPE(token, TOK_SUB) ||
+			   IS_CURR_OF_TYPE(token, TOK_MUL) ||
+			   IS_CURR_OF_TYPE(token, TOK_DIV) ||
+			   IS_CURR_OF_TYPE(token, TOK_MOD)) {
+		ast_result = parse_binary_operation_node(parser, token);
+		// } else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		// 	PARSER_POP(&ast_result);
 	} else if (IS_CURR_OF_TYPE(token, TOK_SCOL)) {
 		return ast_result;
 	}
@@ -315,7 +326,8 @@ inline void parser_free(Parser* parser) {
 
 inline Ast_Node* fix_precedence(Ast_Node* node) {
 	Ast_Node* retval = NULL;
-	if (node->right != NULL && node->right->precedence > node->precedence) {
+	if (node->right != NULL && node->precedence > node->right->precedence &&
+		node->right->precedence != 0) {
 		retval = node->right;
 		Ast_Node* right_left = node->right->left;
 		node->right->left = node;

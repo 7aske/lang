@@ -67,17 +67,31 @@ Ast_Node* ast_node_new(Token* token) {
 	if (ast_node->type == AST_BLOCK) {
 		ast_node->size = 0;
 		ast_node->capacity = 16;
-		ast_node->nodes = (Ast_Node**) calloc(ast_node->capacity, sizeof(Ast_Node*));
+		ast_node->nodes = (Ast_Node**) calloc(ast_node->capacity,
+											  sizeof(Ast_Node*));
 	}
 
 	if (ast_node->type == AST_BOOLEAN) {
-		ast_node->precedence = AST_BOOLEAN_PRECEDENCE;
+		if (token->type == TOK_AND) {
+			ast_node->precedence = AST_AND_PRECEDENCE;
+		} else if (token->type == TOK_OR) {
+			ast_node->precedence = AST_OR_PRECEDENCE;
+		}
 	} else if (ast_node->type == AST_EQUALITY) {
 		ast_node->precedence = AST_EQUALITY_PRECEDENCE;
 	} else if (ast_node->type == AST_RELATIONAL) {
 		ast_node->precedence = AST_RELATIONAL_PRECEDENCE;
 	} else if (ast_node->type == AST_ASSIGN) {
 		ast_node->precedence = AST_ASSIGN_PRECEDENCE;
+	} else if (ast_node->type == AST_ARITHMETIC) {
+		if (token->type == TOK_ADD ||
+			token->type == TOK_SUB) {
+			ast_node->precedence = AST_ADD_SUB_PRECEDENCE;
+		} else if (token->type == TOK_MUL ||
+				   token->type == TOK_DIV ||
+				   token->type == TOK_MOD) {
+			ast_node->precedence = AST_MUL_DIV_MOD_PRECEDENCE;
+		}
 	}
 
 	memcpy(&ast_node->token, token, sizeof(Token));
@@ -88,10 +102,13 @@ Ast_Node* ast_node_new(Token* token) {
 // Function for adding parsed AST nodes to the block node
 inline Ast_Node* ast_block_node_add_node(Ast_Node* block_node, Ast_Node* ast_node) {
 	assert(block_node->type == AST_BLOCK);
-	memcpy(block_node->nodes + block_node->size++, &ast_node, sizeof(Ast_Node*));
+	memcpy(block_node->nodes + block_node->size++, &ast_node,
+		   sizeof(Ast_Node*));
 	if (block_node->size == block_node->capacity) {
 		block_node->capacity *= 2;
-		block_node->nodes = reallocarray(block_node->nodes, block_node->capacity, sizeof(Ast_Node*));
+		block_node->nodes = reallocarray(block_node->nodes,
+										 block_node->capacity,
+										 sizeof(Ast_Node*));
 	}
 	return *(block_node->nodes + block_node->size - 1);
 
