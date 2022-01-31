@@ -9,6 +9,9 @@
 #include "ast.h"
 #include "stack.h"
 
+#define PARSER_POP(dest) stack_pop(&parser->node_stack, dest)
+#define PARSER_PUSH(src) stack_push(&parser->node_stack, dest)
+
 // Struct representing an error report
 typedef struct parser_error_report {
 	// @Alloc
@@ -77,17 +80,17 @@ Ast_Result parse_if_statement(Parser*, Token**);
 
 Ast_Result parse_expression(Parser*, Token**);
 
-Ast_Result parse_eq_node(Parser*, Ast_Node*, Token**);
+Ast_Result parse_boolean_node(Parser*, Token**);
 
-Ast_Result parse_boolean_node(Parser* p_parser, Ast_Node* p_node, Token** p_token);
-
-Ast_Result parse_relational_node(Parser* parser, Ast_Node* left, Token** token);
+Ast_Result parse_relational_node(Parser*, Token**);
 
 Ast_Result parse_block_node(Parser*, Token**);
 
 void parser_free(Parser* parser);
 
 Ast_Node* fix_precedence(Ast_Node*);
+
+Ast_Result parser_create_node(Parser*, Token** token);
 
 #endif //LANG_PARSER_H
 

@@ -72,7 +72,7 @@ int main(void) {
 	free(lexer_result.data);
 	parser_free(&parser);
 
-	char* code5 = "if (a == (b)) || b {"
+	char* code5 = "if (a == b) || b {"
 				  "} else {"
 				  "}";
 	lexer_new(&lexer, code5);
@@ -89,4 +89,39 @@ int main(void) {
 	free(lexer_result.data);
 	parser_free(&parser);
 
+	char* code6 = "if (a == (b)) || b() {"
+				  "} else {"
+				  "}";
+	lexer_new(&lexer, code6);
+	lexer_lex(&lexer, &lexer_result);
+	parser_new(&parser, code6);
+	result = parser_parse(&parser, &lexer_result);
+	first_node = result.nodes[0];
+	assert(result.error_count == 0);
+	assert(first_node->type == AST_IF);
+	assert(first_node->middle->type == AST_BOOLEAN);
+	assert(first_node->middle->left->type == AST_EQUALITY);
+	assert(first_node->middle->left->left->type == AST_IDENT);
+	assert(first_node->middle->left->right->type == AST_IDENT);
+	assert(first_node->middle->right->type == AST_IDENT);
+	assert(first_node->middle->token.type == TOK_OR);
+	free(lexer_result.data);
+	parser_free(&parser);
+
+	// char* code7 = "(1 + 2) * 3";
+	// lexer_new(&lexer, code7);
+	// lexer_lex(&lexer, &lexer_result);
+	// parser_new(&parser, code7);
+	// result = parser_parse(&parser, &lexer_result);
+	// first_node = result.nodes[0];
+	// assert(result.error_count == 0);
+	// assert(first_node->type == AST_IF);
+	// assert(first_node->middle->type == AST_BOOLEAN);
+	// assert(first_node->middle->left->type == AST_EQUALITY);
+	// assert(first_node->middle->left->left->type == AST_IDENT);
+	// assert(first_node->middle->left->right->type == AST_IDENT);
+	// assert(first_node->middle->right->type == AST_IDENT);
+	// assert(first_node->middle->token.type == TOK_OR);
+	// free(lexer_result.data);
+	// parser_free(&parser);
 }

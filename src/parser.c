@@ -53,62 +53,55 @@ inline void parser_print_source_code_location(Parser* parser, Token* token) {
 	fputc('\n', stderr);
 }
 
-Ast_Result parse_boolean_node(Parser* parser, Ast_Node* left, Token** token) {
+Ast_Result parse_boolean_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_AND || (*token)->type == TOK_OR);
-	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		left_ast_result = parser_create_node(parser, token);
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
 
-	Ast_Node* boolean_node = ast_node_new(NEXT_TOKEN(token));
-	ast_result.node = boolean_node;
-	ast_result.node->left = left;
+	Ast_Result boolean_node = parser_create_node(parser, token);
+	boolean_node.node->left = left_ast_result.node;
 
 	Ast_Result right_ast_result = parse_expression(parser, token);
-	ast_result.node->right = right_ast_result.node;
-	ast_result.error = right_ast_result.error;
+	boolean_node.node->right = right_ast_result.node;
+	boolean_node.error = right_ast_result.error;
 
-	if (ast_result.error == AST_NO_ERROR)
-		ast_result.node = fix_precedence(ast_result.node);
+	if (boolean_node.error == AST_NO_ERROR)
+		boolean_node.node = fix_precedence(boolean_node.node);
 
-	return ast_result;
+	return boolean_node;
 }
 
-Ast_Result parse_relational_node(Parser* parser, Ast_Node* left, Token** token) {
+Ast_Result parse_relational_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_GT ||
 		   (*token)->type == TOK_LT ||
 		   (*token)->type == TOK_GE ||
-		   (*token)->type == TOK_LE);
+		   (*token)->type == TOK_LE ||
+		   (*token)->type == TOK_NE ||
+		   (*token)->type == TOK_EQ
+	);
 
-	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		left_ast_result = parser_create_node(parser, token);
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
 
-	Ast_Node* relational_node = ast_node_new(NEXT_TOKEN(token));
-	ast_result.node = relational_node;
-	ast_result.node->left = left;
-
-	Ast_Result right_ast_result = parse_expression(parser, token);
-	ast_result.node->right = right_ast_result.node;
-	ast_result.error = right_ast_result.error;
-
-	if (ast_result.error == AST_NO_ERROR)
-		ast_result.node = fix_precedence(ast_result.node);
-
-	return ast_result;
-}
-
-Ast_Result parse_eq_node(Parser* parser, Ast_Node* left, Token** token) {
-	assert((*token)->type == TOK_EQ || (*token)->type == TOK_NE);
-	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
-
-	Ast_Node* equality_node = ast_node_new(NEXT_TOKEN(token));
-	ast_result.node = equality_node;
-	ast_result.node->left = left;
+	Ast_Result relational_node = parser_create_node(parser, token);
+	relational_node.node->left = left_ast_result.node;
 
 	Ast_Result right_ast_result = parse_expression(parser, token);
-	ast_result.node->right = right_ast_result.node;
-	ast_result.error = right_ast_result.error;
+	relational_node.node->right = right_ast_result.node;
+	relational_node.error = right_ast_result.error;
 
-	if (ast_result.error == AST_NO_ERROR)
-		ast_result.node = fix_precedence(ast_result.node);
+	if (relational_node.error == AST_NO_ERROR)
+		relational_node.node = fix_precedence(relational_node.node);
 
-	return ast_result;
+	return relational_node;
 }
 
 Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
@@ -151,6 +144,11 @@ Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
 Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 	Ast_Result ast_result;
 
+	if ((*lexer_result)->type == TOK_INVALID) {
+		ast_result.error = AST_ERROR;
+		return ast_result;
+	}
+
 	if ((*lexer_result)->type == TOK_IF) {
 		ast_result = parse_if_statement(parser, lexer_result);
 	} else {
@@ -162,10 +160,7 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 
 Ast_Result parse_if_statement(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_IF);
-	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
-
-	Ast_Node* if_statement = ast_node_new(NEXT_TOKEN(token));
-	ast_result.node = if_statement;
+	Ast_Result ast_result = parser_create_node(parser, token);
 
 	Ast_Result middle_ast_result = parse_expression(parser, token);
 	ast_result.node->middle = middle_ast_result.node;
@@ -199,9 +194,7 @@ Ast_Result parse_if_statement(Parser* parser, Token** token) {
 
 Ast_Result parse_block_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_LBRACE);
-	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
-	Ast_Node* block_node = ast_node_new(NEXT_TOKEN(token));
-	ast_result.node = block_node;
+	Ast_Result ast_result = parser_create_node(parser, token);
 
 	while (!IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
 		Ast_Result node_result = parse_statement(parser, token);
@@ -222,60 +215,56 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		!IS_PREV_OF_TYPE(token, TOK_IDEN)) {
 		NEXT_TOKEN(token);
 		ast_result = parse_expression(parser, token);
-		ast_result.node->precedence = S32_MAX;
 
-		if (!IS_PEEK_OF_TYPE(token, TOK_RPAREN)) {
-			parser_report_error(parser, *token, "Expected token )");
-			ast_result.error = AST_ERROR;
-			return ast_result;
-		} else {
-			NEXT_TOKEN(token);
-		}
-
-		// if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		// if (!IS_PEEK_OF_TYPE(token, TOK_RPAREN)) {
+		// 	parser_report_error(parser, *token, "Expected token )");
+		// 	ast_result.error = AST_ERROR;
 		// 	return ast_result;
 		// }
 
+		stack_push(&parser->node_stack, &ast_result);
+
+
 		Ast_Result new = parse_expression(parser, token);
+		if (new.node == NULL)
+			return ast_result;
+		new.node->precedence = S32_MAX;
 		new.node->left = ast_result.node;
-		ast_result = new;
-		// } else if (IS_PEEK_OF_TYPE(token, TOK_SCOL)) {
-		// 	ast_result.node = ast_node_new(NEXT_TOKEN(token));
-	} else if (IS_PEEK_OF_TYPE(token, TOK_RPAREN)) {
-		ast_result.node = ast_node_new(*token);
-	} else if (IS_PEEK_OF_TYPE(token, TOK_LPAREN)) {
-		ast_result = parse_argument_list(parser, token);
+
+		fix_precedence(new.node);
+
+		return new;
 	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
-		ast_result = parse_block_node(parser, token);
-	} else if (IS_CURR_OF_TYPE(token, TOK_GT) ||
-			   IS_CURR_OF_TYPE(token, TOK_LT) ||
-			   IS_CURR_OF_TYPE(token, TOK_GE) ||
-			   IS_CURR_OF_TYPE(token, TOK_LE) ||
-			   IS_CURR_OF_TYPE(token, TOK_EQ) ||
-			   IS_CURR_OF_TYPE(token, TOK_NE)) { // @Temporary
-		// None of these tokens should the token in line for parsing
-		// in this method. That means that something is wrong. Usually...
-		parser_report_error(parser, *token, "Unexpected token");
-		ast_result.error = AST_ERROR;
+		return parse_block_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
 		parser_report_error(parser, *token, "Unexpected token }");
 		ast_result.error = AST_ERROR;
-	} else if (IS_PEEK_OF_TYPE(token, TOK_AND) ||
-			   IS_PEEK_OF_TYPE(token, TOK_OR)) {
-		Ast_Node* node = ast_node_new(NEXT_TOKEN(token));
-		ast_result = parse_boolean_node(parser, node, token);
-	} else if (IS_PEEK_OF_TYPE(token, TOK_EQ) ||
-			   IS_PEEK_OF_TYPE(token, TOK_NE)) {
-		Ast_Node* node = ast_node_new(NEXT_TOKEN(token));
-		ast_result = parse_eq_node(parser, node, token);
-	} else if (IS_PEEK_OF_TYPE(token, TOK_GT) ||
-			   IS_PEEK_OF_TYPE(token, TOK_LT) ||
-			   IS_PEEK_OF_TYPE(token, TOK_GE) ||
-			   IS_PEEK_OF_TYPE(token, TOK_LE)) {
-		Ast_Node* node = ast_node_new(NEXT_TOKEN(token));
-		ast_result = parse_relational_node(parser, node, token);
-	} else {
-		ast_result.node = ast_node_new(NEXT_TOKEN(token));
+		return ast_result;
+	} else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		NEXT_TOKEN(token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_SCOL)) {
+		ast_result = parser_create_node(parser, token);
+		return ast_result;
+	} else if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		ast_result = parser_create_node(parser, token);
+	}
+
+	if (IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
+		ast_result = parse_argument_list(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_AND) ||
+			   IS_CURR_OF_TYPE(token, TOK_OR)) {
+		ast_result = parse_boolean_node(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_EQ) ||
+			   IS_CURR_OF_TYPE(token, TOK_NE) ||
+			   IS_CURR_OF_TYPE(token, TOK_GT) ||
+			   IS_CURR_OF_TYPE(token, TOK_LT) ||
+			   IS_CURR_OF_TYPE(token, TOK_GE) ||
+			   IS_CURR_OF_TYPE(token, TOK_LE)) {
+		ast_result = parse_relational_node(parser, token);
+	// } else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+	// 	PARSER_POP(&ast_result);
+	} else if (IS_CURR_OF_TYPE(token, TOK_SCOL)) {
+		return ast_result;
 	}
 
 	return ast_result;
@@ -336,6 +325,16 @@ inline Ast_Node* fix_precedence(Ast_Node* node) {
 	}
 
 	return retval;
+}
+
+Ast_Result parser_create_node(Parser* parser, Token** token) {
+	Ast_Result ast_result = {
+		.error= AST_NO_ERROR,
+		.node= ast_node_new(NEXT_TOKEN(token))
+	};
+
+	stack_push(&parser->node_stack, &ast_result);
+	return ast_result;
 }
 
 #pragma clang diagnostic pop
