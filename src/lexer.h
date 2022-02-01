@@ -41,9 +41,7 @@ typedef enum lexer_error {
  * @param capacity Maximum capacity of the data array.
  */
 typedef struct lexer_result {
-	Token* data;
-	u32 size;
-	u32 capacity;
+	List tokens;
 } Lexer_Result;
 
 // @Refactor this is essentially the same as the Parser_Error_Report struct.
@@ -74,12 +72,7 @@ typedef struct lexer_error_report {
  * @param code.size Character length of the code segment
  * @param code.text Actual text data of the program being parsed.
  *
- * @struct error Struct encapsulating data related to lexer generated errors.
- * @param error.size     Number of generated errors.
- * @param error.capacity Size of the heap-allocated array for storing error
- *                       reports
- * @param error.reports  Heap-allocated array for storing Lexer_Error_Report
- *                       structs.
+ * @struct errors List of lexer generated errors.
  */
 typedef struct lexer {
 	struct {
@@ -87,6 +80,7 @@ typedef struct lexer {
 		char* text;
 	} code;
 
+	List tokens;
 	List errors;
 } Lexer;
 
@@ -97,14 +91,6 @@ fputs(__str, stderr);\
 
 // Returns the next token without incrementing the pointer.
 #define PEEK_NEXT(ptr) *((ptr) + 1)
-
-// @CopyPaste
-// Macro allowing forEach-like traversal of lexer errors.
-#define lexer_error_foreach(__lexer, code) { \
-for(int _i = 0; _i < (__lexer)->error.size; ++_i) { \
-    Lexer_Error_Report it = (lexer)->error.reports[_i];     \
-    code\
-}}
 
 /**
  * Populates an instance of the Lexer struct pointer to by the dest parameter.
@@ -123,7 +109,7 @@ void lexer_new(Lexer* dest, char* code);
  *                     output pointer.
  * @return number of errors that occurred during lexing.
  */
-u32 lexer_lex(Lexer* lexer, Lexer_Result* lexer_result);
+u32 lexer_lex(Lexer* lexer);
 
 /**
  * @param ptr Pointer to the current character being parsed.

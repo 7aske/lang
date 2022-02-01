@@ -179,7 +179,7 @@ void parser_print_source_code_location(Parser* parser, Token* token);
  *
  * @param parser  this
  * @param message Text message that gets converted to Parser_Error_Report struct
- *                and gets put into the parser.error.reports memeber.
+ *                and gets put into the parser.error.reports member.
  */
 void parser_report_error(Parser* parser, Token*, char* message);
 
@@ -187,11 +187,10 @@ void parser_report_error(Parser* parser, Token*, char* message);
  * Entry point of the Parser struct. Responsible for performing parse operations
  * on the tokens contained in the lexer result.
  * @param parser this
- * @param lexer_result Location of the struct containing parsed Tokens which are
- *                     being parsed to an AST.
+ * @param lexer Lexer with parsed tokens.
  * @return Parser_Result containing parsed nodes and possible errors.
  */
-Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result);
+Parser_Result parser_parse(Parser* parser, Lexer* lexer);
 
 /**
  * Generic parse statement function. Usually an entry point at the start of parsing

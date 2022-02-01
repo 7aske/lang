@@ -121,9 +121,12 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 		dest->string_value.data = (char*) calloc(code_size + 1, sizeof(char));
 	} else if (token == TOK_LIT_FLT) {
 		dest->float64_value = 0;
-	} else if (token == TOK_LIT_INT || token == TOK_TRUE || token == TOK_FALSE) {
+	} else if (token == TOK_LIT_INT || token == TOK_FALSE) {
 		dest->integer_value = 0;
+	} else if (token == TOK_TRUE) {
+		dest->integer_value = 1;
 	}
+
 	dest->c0 = col + 1;
 	dest->r0 = row + 1;
 	dest->c1 = dest->c0 + code_size;
@@ -131,17 +134,18 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 	dest->r1 = row + 1;
 }
 
-u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
+u32 lexer_lex(Lexer* lexer) {
 	char* ptr = lexer->code.text;
 	String_Buffer* string_buffer = string_buffer_new();
 	u32 size;
 
-	result->capacity = 16;
-	result->size = 0;
-	result->data = (Token*) calloc(result->capacity, sizeof(Token));
-
 	u32 col = 0;
 	u32 row = 0;
+
+	// All created tokens are being written to this variable and then
+	// copied to the lexer tokens list.
+	Token token;
+
 	while (not_terminated(ptr)) {
 		if (isspace(*ptr)) {
 			if (*ptr == '\n') {
@@ -163,32 +167,26 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
 			// If the result is TOK_INVALID that means that the parsed word is
 			// an identifier.
 			if (possible_token == TOK_INVALID) {
-				lexer_token_new(&result->data[result->size], TOK_IDEN, size, col, row);
-				strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->count);
+				lexer_token_new(&token, TOK_IDEN, size, col, row);
+				strncpy(token.string_value.data, string_buffer->data, string_buffer->count);
 			} else {
-				lexer_token_new(&result->data[result->size], possible_token, size, col, row);
+				lexer_token_new(&token, possible_token, size, col, row);
 			}
-			result->size++;
+			list_push(&lexer->tokens, &token);
 			col += (int) size;
-			goto resize;
-		}
-
-
-		if (lexer_startof_char(ptr)) {
+		} else if (lexer_startof_char(ptr)) {
 			size = lexer_eat_char(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
 				lexer_report_error(lexer, TOK_LIT_CHR, col, row, "Invalid char literal");
 				break;
 			}
-			lexer_token_new(&result->data[result->size], TOK_LIT_CHR, size, col, row);
-			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->count + 1);
-			result->size++;
-			col += 2 + size; // 2 is for two quotes;
-			goto resize;
-		}
 
-		if (lexer_startof_string(ptr)) {
+			lexer_token_new(&token, TOK_LIT_CHR, size, col, row);
+			strncpy(token.string_value.data, string_buffer->data, string_buffer->count + 1);
+			list_push(&lexer->tokens, &token);
+			col += 2 + size; // 2 is for two quotes;
+		} else if (lexer_startof_string(ptr)) {
 			size = lexer_eat_string(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
@@ -196,57 +194,46 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
 				break;
 			}
 
-			lexer_token_new(&result->data[result->size], TOK_LIT_STR, string_buffer->count, col, row);
-			strncpy(result->data[result->size].string_value.data, string_buffer->data, string_buffer->count + 1);
-			result->size++;
+			lexer_token_new(&token, TOK_LIT_STR, string_buffer->count, col, row);
+			strncpy(token.string_value.data, string_buffer->data, string_buffer->count + 1);
+			list_push(&lexer->tokens, &token);
 			col += (int) size;
-			goto resize;
-		}
-
-		if (lexer_startof_number(ptr) && PEEK_NEXT(ptr) != '>') {
+		} else if (lexer_startof_number(ptr) && PEEK_NEXT(ptr) != '>') {
 			size = lexer_eat_number(&ptr, string_buffer);
-			Token_Type token = TOK_LIT_INT;
+			Token_Type token_type = TOK_LIT_INT;
 			// @Incomplete validate float not having multiple decimal points
 			if (lexer_is_float(string_buffer->data)) {
-				token = TOK_LIT_FLT;
+				token_type = TOK_LIT_FLT;
 			}
 
-			lexer_token_new(&result->data[result->size], token, size, col, row);
-			if (token == TOK_LIT_INT) {
+			lexer_token_new(&token, token_type, size, col, row);
+			if (token_type == TOK_LIT_INT) {
 				s64 val = strtoll(string_buffer->data, NULL, 10);
-				result->data[result->size].integer_value = val;
+				token.integer_value = val;
 			} else {
 				float64 val = strtod(string_buffer->data, NULL);
-				result->data[result->size].float64_value = val;
+				token.float64_value = val;
 			}
-			result->size++;
+			list_push(&lexer->tokens, &token);
 			col += (int) size;
-			goto resize;
+		} else {
+			Token_Type token_type = resolve_operator(ptr);
+			if (token_type == TOK_INVALID) {
+				lexer_report_error(lexer, token_type, col, row,
+								   "Invalid token");
+				break;
+			}
+			// Increment the pointer by the amount of characters 'eaten' by the
+			// resolve_operator function.
+			// @Optimization not the best way to do this.
+			const char* tok_val = token_value[token_type];
+			u32 len = strlen(tok_val);
+			lexer_token_new(&token, token_type, len, col, row);
+			list_push(&lexer->tokens, &token);
+
+			ptr += len;
+			col += len;
 		}
-
-		Token_Type token = resolve_operator(ptr);
-		if (token == TOK_INVALID) {
-			lexer_report_error(lexer, token, col, row, "Invalid token");
-			break;
-		}
-		// Increment the pointer by the amount of characters 'eaten' by the
-		// resolve_operator function.
-		// @Optimization not the best way to do this.
-		const char* tok_val = token_value[token];
-		u32 len = strlen(tok_val);
-		lexer_token_new(&result->data[result->size], token, len, col, row);
-		result->size++;
-
-		ptr += len;
-		col += len;
-
-		resize:
-		if (result->size == result->capacity) {
-			result->capacity *= 2;
-			result->data = reallocarray(result->data, result->capacity,
-										sizeof(Token));
-		}
-
 	}
 
 	string_buffer_free(string_buffer);
@@ -269,6 +256,7 @@ inline void lexer_new(Lexer* lexer, char* code) {
 	lexer->code.size = strlen(code);
 	lexer->code.text = code;
 	list_new(&lexer->errors, sizeof(Lexer_Error_Report));
+	list_new(&lexer->tokens, sizeof(Token));
 }
 
 inline void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32 row, char* error_text) {
@@ -281,6 +269,7 @@ inline void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32
 }
 
 void lexer_free(Lexer* lexer) {
+	list_free(&lexer->tokens);
 	list_free(&lexer->errors);
 }
 

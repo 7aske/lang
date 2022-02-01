@@ -34,12 +34,12 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	Lexer_Result parsed;
 	Lexer lexer;
 	lexer_new(&lexer, code_text);
-	lexer_lex(&lexer, &parsed);
+	lexer_lex(&lexer);
+	List parsed = lexer.tokens;
 
-	for (int i = 0; i < parsed.size; ++i) {
+	for (int i = 0; i < parsed.count; ++i) {
 		Token tok = *(Token*)(list_get(&parsed, i));
 		char* repr = (char*) token_repr[tok.type];
 		char* text = (char*) tok.string_value.data;

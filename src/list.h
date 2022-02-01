@@ -28,7 +28,7 @@ for(int _i = 0; _i < (__list)->count; ++_i) { \
  * @param data     Heap-allocated array for storing elements in the list.
  */
 typedef struct list {
-	u64 size;
+	u64 __list_size;
 	s64 count;
 	u64 capacity;
 	void* data;
@@ -75,7 +75,7 @@ void list_remove(List* list, s64 index);
  * Checks whether list is empty.
  *
  * @param list this.
- * @return True if the list size is 0;
+ * @return True if the list count is 0;
  */
 bool list_is_empty(List* list);
 

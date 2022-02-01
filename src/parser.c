@@ -109,14 +109,14 @@ Ast_Result parse_binary_operation_node(Parser* parser, Token** token) {
 	return binary_node;
 }
 
-Parser_Result parser_parse(Parser* parser, Lexer_Result* lexer_result) {
+Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 	// @Temporary - move to result struct
 	u32 capacity = 16;
 	Parser_Result result = {.size= 0, .nodes = NULL};
 	result.nodes = (Ast_Node**) calloc(capacity, sizeof(Ast_Node*));
 
-	Token* parsed_tokens = lexer_result->data;
-	Token* end = lexer_result->data + lexer_result->size;
+	Token* parsed_tokens = lexer->tokens.data;
+	Token* end = ((Token*)lexer->tokens.data) + lexer->tokens.count;
 
 	while (parsed_tokens <= end) {
 		Ast_Result ast_result = parse_statement(parser, &parsed_tokens);
