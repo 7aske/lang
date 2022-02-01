@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 	lexer_lex(&lexer, &parsed);
 
 	for (int i = 0; i < parsed.size; ++i) {
-		Token tok = parsed.data[i];
+		Token tok = *(Token*)(list_get(&parsed, i));
 		char* repr = (char*) token_repr[tok.type];
 		char* text = (char*) tok.string_value.data;
 		char* data = (char*) token_value[tok.type];

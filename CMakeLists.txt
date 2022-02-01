@@ -16,6 +16,8 @@ set(SOURCE_FILES
         src/ast.h
         src/stack.c
         src/stack.h
+        src/list.c
+        src/list.h
         src/stdtypes.h
         )
 
@@ -28,6 +30,9 @@ add_executable(lexer_test test/lexer_test.c ${SOURCE_FILES})
 target_include_directories(lexer_test PRIVATE src)
 add_executable(parser_test test/parser_test.c ${SOURCE_FILES})
 target_include_directories(parser_test PRIVATE src)
+add_executable(list_test test/list_test.c ${SOURCE_FILES})
+target_include_directories(list_test PRIVATE src)
 
 add_test(lexer_test lexer_test)
 add_test(parser_test parser_test)
+add_test(list_test list_test)
