@@ -45,6 +45,8 @@ inline bool list_is_empty(List* list) {
 
 void list_free(List* list) {
 	if (list->data != NULL) {
+		list->count = 0;
+		list->capacity = LIST_INITIAL_CAPACITY;
 		free(list->data);
 		list->data = NULL;
 	}

@@ -129,7 +129,7 @@ int main(void) {
 	char* code10 = "str # char = 'c';";
 	lexer_new(&lexer, code10);
 	lexer_lex(&lexer, &lexer_result);
-	assert(lexer.error.size == 1);
+	assert(lexer.errors.count == 1);
 	free(lexer_result.data);
 	lexer_free(&lexer);
 

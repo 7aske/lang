@@ -252,12 +252,12 @@ u32 lexer_lex(Lexer* lexer, Lexer_Result* result) {
 	string_buffer_free(string_buffer);
 
 	// @Temporary
-	lexer_error_foreach(lexer, {
-		lexer_print_source_code_location(lexer, &it);
-		fprintf(stderr, "%s @ %s:%lu:%lu\n", it.text, "__FILE__", it.row, it.col);
+	list_foreach(&lexer->errors, Lexer_Error_Report*, {
+		lexer_print_source_code_location(lexer, it);
+		fprintf(stderr, "%s @ %s:%lu:%lu\n", it->text, "__FILE__", it->row, it->col);
 	})
 
-	return lexer->error.size;
+	return lexer->errors.count;
 }
 
 
@@ -268,11 +268,7 @@ bool lexer_is_float(const char* num_str) {
 inline void lexer_new(Lexer* lexer, char* code) {
 	lexer->code.size = strlen(code);
 	lexer->code.text = code;
-	lexer->error.capacity = 16;
-	lexer->error.size = 0;
-	lexer->error.reports =
-		(Lexer_Error_Report*) calloc(lexer->error.capacity,
-									  sizeof(Lexer_Error_Report));
+	list_new(&lexer->errors, sizeof(Lexer_Error_Report));
 }
 
 inline void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32 row, char* error_text) {
@@ -281,22 +277,11 @@ inline void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32
 	error_report.type = token_type;
 	error_report.col = col + 1;
 	error_report.row = row + 1;
-	memcpy(lexer->error.reports + lexer->error.size++,
-		   &error_report,
-		   sizeof(Lexer_Error_Report));
-	if (lexer->error.size == lexer->error.capacity) {
-		lexer->error.capacity *= 2;
-		lexer->error.reports =
-			reallocarray(lexer->error.reports,
-						 lexer->error.capacity,
-						 sizeof(Lexer_Error_Report));
-	}
+	list_push(&lexer->errors, &error_report);
 }
 
 void lexer_free(Lexer* lexer) {
-	lexer->error.size = 0;
-	free(lexer->error.reports);
-	lexer->error.reports = NULL;
+	list_free(&lexer->errors);
 }
 
 // @CopyPaste

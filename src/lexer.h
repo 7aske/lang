@@ -21,6 +21,7 @@
 #include "token.h"
 #include "stdtypes.h"
 #include "string_buffer.h"
+#include "list.h"
 
 
 /**
@@ -86,12 +87,7 @@ typedef struct lexer {
 		char* text;
 	} code;
 
-	struct {
-		// @Alloc
-		Lexer_Error_Report* reports;
-		u32 size;
-		u32 capacity;
-	} error;
+	List errors;
 } Lexer;
 
 // @CopyPaste
