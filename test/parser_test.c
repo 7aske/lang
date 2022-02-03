@@ -13,7 +13,7 @@ int main(void) {
 	parser_new(&parser, code1);
 	result = parser_parse(&parser, &lexer);
 
-	first_node = result.nodes[0];
+	first_node = *((Ast_Node**) list_get(&result.nodes, 0));
 	assert(first_node->type == AST_IF);
 	assert(first_node->middle->type == AST_LITERAL);
 	assert(first_node->left->type == AST_BLOCK);
@@ -29,7 +29,7 @@ int main(void) {
 	parser_new(&parser, code2);
 	result = parser_parse(&parser, &lexer);
 
-	first_node = result.nodes[0];
+	first_node = *(Ast_Node**)list_get(&result.nodes, 0);
 	assert(first_node->type == AST_IF);
 	assert(first_node->middle->type == AST_EQUALITY);
 	assert(first_node->middle->left->type == AST_IDENT);
@@ -46,7 +46,7 @@ int main(void) {
 	lexer_lex(&lexer);
 	parser_new(&parser, code3);
 	result = parser_parse(&parser, &lexer);
-	assert(result.error.count == 1);
+	assert(result.errors.count == 1);
 	lexer_free(&lexer);
 	parser_free(&parser);
 
@@ -64,8 +64,8 @@ int main(void) {
 	lexer_lex(&lexer);
 	parser_new(&parser, code4);
 	result = parser_parse(&parser, &lexer);
-	first_node = result.nodes[0];
-	assert(result.error.count == 0);
+	first_node =*(Ast_Node**) list_get(&result.nodes, 0);
+	assert(result.errors.count == 0);
 	assert(first_node->type == AST_IF);
 	assert(first_node->middle->type == AST_BOOLEAN);
 	lexer_free(&lexer);
@@ -78,8 +78,8 @@ int main(void) {
 	lexer_lex(&lexer);
 	parser_new(&parser, code5);
 	result = parser_parse(&parser, &lexer);
-	first_node = result.nodes[0];
-	assert(result.error.count == 0);
+	first_node =*(Ast_Node**) list_get(&result.nodes, 0);
+	assert(result.errors.count == 0);
 	assert(first_node->type == AST_IF);
 	assert(first_node->middle->type == AST_BOOLEAN);
 	assert(first_node->middle->left->type == AST_EQUALITY);
@@ -95,8 +95,8 @@ int main(void) {
 	lexer_lex(&lexer);
 	parser_new(&parser, code6);
 	result = parser_parse(&parser, &lexer);
-	first_node = result.nodes[0];
-	assert(result.error.count == 0);
+	first_node = *(Ast_Node**)list_get(&result.nodes, 0);
+	assert(result.errors.count == 0);
 	assert(first_node->type == AST_IF);
 	assert(first_node->middle->type == AST_BOOLEAN);
 	assert(first_node->middle->left->type == AST_EQUALITY);
@@ -112,8 +112,8 @@ int main(void) {
 	lexer_lex(&lexer);
 	parser_new(&parser, code7);
 	result = parser_parse(&parser, &lexer);
-	first_node = result.nodes[0];
-	assert(result.error.count == 0);
+	first_node = *(Ast_Node**)list_get(&result.nodes, 0);
+	assert(result.errors.count == 0);
 	assert(first_node->type == AST_ARITHMETIC);
 	assert(first_node->token.type == TOK_ADD);
 	assert(first_node->left->type == AST_ARITHMETIC);

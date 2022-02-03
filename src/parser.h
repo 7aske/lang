@@ -82,13 +82,7 @@ typedef struct parser {
 		char* text;
 	} code;
 
-	// @Refactor this can be refactored into a generic list.
-	struct {
-		// @Alloc
-		Parser_Error_Report* reports;
-		u32 size;
-		u32 capacity;
-	} error;
+	List errors;
 	Stack node_stack;
 } Parser;
 
@@ -102,23 +96,9 @@ typedef struct parser {
  *                       structs.
  */
 typedef struct parser_result {
-	// @Refactor this can be refactored into a generic list.
-	u32 size;
-	Ast_Node** nodes;
-
-	// @Refactor this can be refactored into a generic list.
-	struct {
-		Parser_Error_Report* reports;
-		u32 count;
-	} error;
+	List nodes;
+	List errors;
 } Parser_Result;
-
-// Macro allowing forEach-like traversal of parser errors.
-#define parser_error_foreach(__parser, __code) { \
-for(int _i = 0; _i < (__parser)->error.size; ++_i) { \
-    Parser_Error_Report it = (__parser)->error.reports[_i]; \
-    __code\
-}}
 
 // Returns the current token and increments the token point
 #define NEXT_TOKEN(ptrptr) (*(ptrptr))++

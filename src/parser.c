@@ -110,10 +110,9 @@ Ast_Result parse_binary_operation_node(Parser* parser, Token** token) {
 }
 
 Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
-	// @Temporary - move to result struct
-	u32 capacity = 16;
-	Parser_Result result = {.size= 0, .nodes = NULL};
-	result.nodes = (Ast_Node**) calloc(capacity, sizeof(Ast_Node*));
+	Parser_Result result;
+	list_new(&result.nodes, sizeof(Ast_Node*));
+	list_new(&result.errors, sizeof(Parser_Error_Report));
 
 	Token* parsed_tokens = lexer->tokens.data;
 	Token* end = ((Token*)lexer->tokens.data) + lexer->tokens.count;
@@ -124,27 +123,20 @@ Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 		if (ast_result.error != AST_NO_ERROR)
 			break;
 
-		// @Temporary
-		memcpy(result.nodes + result.size++, &ast_result.node,
-			   sizeof(Ast_Node**));
-		if (result.size == capacity) {
-			capacity *= 2;
-			result.nodes = reallocarray(result.nodes, capacity,
-										sizeof(Ast_Node**));
-		}
+		list_push(&result.nodes, &ast_result.node);
 	}
 
-	parser_error_foreach(parser, {
-		parser_print_source_code_location(parser, it.source);
-		fprintf(stderr, "%s @ %s:%lu:%lu\n", it.text, "__FILE__", it.source->r0,
-				it.source->c0);
+	list_foreach(&parser->errors, Parser_Error_Report*, {
+		parser_print_source_code_location(parser, it->source);
+		fprintf(stderr, "%s @ %s:%lu:%lu\n",
+				it->text,
+				"__FILE__",
+				it->source->r0,
+				it->source->c0);
 	})
 
 	// As we are done parsing we can copy error related data to the result struct.
-	result.error.count = parser->error.size;
-	result.error.reports = parser->error.reports;
-	parser->error.size = 0;
-	parser->error.reports = NULL;
+	memcpy(&result.errors, &parser->errors, sizeof(List));
 
 	return result;
 }
@@ -297,34 +289,19 @@ inline void parser_report_error(Parser* parser, Token* token, char* error_text) 
 	Parser_Error_Report error_report;
 	error_report.text = error_text;
 	error_report.source = token;
-	memcpy(parser->error.reports + parser->error.size++,
-		   &error_report,
-		   sizeof(Parser_Error_Report));
-	if (parser->error.size == parser->error.capacity) {
-		parser->error.capacity *= 2;
-		parser->error.reports =
-			reallocarray(parser->error.reports,
-						 parser->error.capacity,
-						 sizeof(Parser_Error_Report));
-	}
-
+	list_push(&parser->errors, &error_report);
 }
 
 inline void parser_new(Parser* parser, char* code) {
 	parser->code.size = strlen(code);
 	parser->code.text = code;
-	parser->error.capacity = 16;
-	parser->error.size = 0;
-	parser->error.reports =
-		(Parser_Error_Report*) calloc(parser->error.capacity,
-									  sizeof(Parser_Error_Report));
-	stack_new(&parser->node_stack, sizeof(Parser_Result));
+	list_new(&parser->errors, sizeof(Parser_Error_Report));
+	stack_new(&parser->node_stack, sizeof(Ast_Result));
 }
 
 inline void parser_free(Parser* parser) {
-	// @Incomplete free report.text
-	parser->error.size = 0;
-	free(parser->error.reports);
+	// @Incomplete free report.text, node_stack
+	list_free(&parser->errors);
 }
 
 inline Ast_Node* fix_precedence(Ast_Node* node) {

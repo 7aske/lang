@@ -23,7 +23,7 @@ inline void stack_new(Stack* stack, u64 size) {
 inline void stack_push(Stack* stack, void* data) {
 	// Before every push to the stack we verify that it has enough space.
 	stack_realloc(stack);
-	memcpy(stack->data + stack->count++, data, stack->size);
+	memcpy(stack->data + (stack->count++ * stack->size), data, stack->size);
 }
 
 inline bool stack_pop(Stack* stack, void* dest) {
@@ -33,14 +33,14 @@ inline bool stack_pop(Stack* stack, void* dest) {
 	if (dest == NULL)  {
 		stack->count--;
 	} else {
-		memcpy(dest, stack->data + --stack->count, stack->size);
+		memcpy(dest, stack->data + (--stack->count * stack->size), stack->size);
 	}
 	return true;
 }
 
 inline void* stack_peek(Stack* stack) {
 	if (stack_is_empty(stack)) return NULL;
-	return stack->data + (stack->count - 1);
+	return stack->data + ((stack->count - 1) * stack->size);
 }
 
 inline bool stack_is_empty(Stack* stack) {
