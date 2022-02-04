@@ -124,7 +124,7 @@ Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 	while (parsed_tokens <= end) {
 		Ast_Result ast_result = parse_statement(parser, &parsed_tokens);
 
-		if (ast_result.error != AST_NO_ERROR)
+		if (ast_result.error != AST_NO_ERROR ||ast_result.node == NULL)
 			break;
 
 		list_push(&result.nodes, &ast_result.node);
@@ -281,9 +281,6 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		return ast_result;
 	} else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 		NEXT_TOKEN(token);
-	} else if (IS_CURR_OF_TYPE(token, TOK_SCOL)) {
-		ast_result = parser_create_node(parser, token);
-		return ast_result;
 	} else if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 		ast_result = parser_create_node(parser, token);
 	}
@@ -309,6 +306,9 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		// All of these are for now parsed as a generic binary operation.
 		ast_result = parse_binary_operation_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_SCOL)) {
+		// We skip the expression terminating token and return the so far parsed
+		// expression.
+		NEXT_TOKEN(token);
 		return ast_result;
 	}
 
