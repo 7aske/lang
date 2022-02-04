@@ -40,7 +40,14 @@ typedef enum ast_node_type {
 	AST_TERNARY,
 
 	AST_BLOCK,
-	AST_TYPE_DECL
+	AST_ARG_LIST,
+	AST_TYPE_DEF,
+	AST_TYPE_DECL,
+
+	AST_FUNC_DEF,
+	AST_FUNC_CALL,
+	AST_FUNC_BODY,
+	AST_FUNC_RET_TYPE
 
 } Ast_Node_Type;
 
@@ -63,9 +70,10 @@ typedef enum ast_node_type {
  *
  * Left, middle and right parameters are valid only if the node is not of
  * type AST_BLOCK_NODE.
- * @param left   Left child of the AST node.
- * @param middle Middle child of the AST node (typically for if statement condition).
- * @param right  Right child of the AST node.
+ * @param left     Left child of the AST node.
+ * @param middle   Middle child of the AST node (typically for if statement condition).
+ * @param right    Right child of the AST node.
+ * @param ret_type Return type specifier in a function definition;
  *
  * Nodes, size and capacity parameters are valid only if the node is of type
  * AST_BLOCK_NODE.
@@ -87,6 +95,7 @@ typedef struct ast_node {
 			struct ast_node* middle;
 			struct ast_node* left;
 			struct ast_node* right;
+			struct ast_node* ret_type; // used for functions.
 		};
 		// Block nodes
 		struct {

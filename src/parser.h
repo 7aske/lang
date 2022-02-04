@@ -259,5 +259,72 @@ Ast_Node* fix_precedence(Ast_Node* node);
  */
 Ast_Result parser_create_node(Parser* parser, Token** token);
 
+/**
+ * Same as parser_create_node(Parser*, Token**) doesn't increment the token
+ * pointer. Can be used when creating AST nodes that do not strictly correspond
+ * to parsed lexer tokens.
+ *
+ * @param parser this
+ * @param token Pointer to the token we want to craete node for.
+ * @return Ast_Result struct with the newly created node.
+ */
+Ast_Result parser_create_node_no_inc(Parser* parser, Token* token);
+
+/**
+ * Function for parsing argument list for function function calls and
+ * function declarations and definitions.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed argument list node.
+ */
+Ast_Result parse_argument_list(Parser* parser, Token** token);
+
+/**
+ * Function for parsing variable type declaration.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed type declaration node.
+ */
+Ast_Result parse_type_decl_node(Parser* parser, Token** token);
+
+
+/**
+ * Function for parsing assignment node.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed assignment node.
+ */
+Ast_Result parse_assignment_node(Parser* parser, Token** token);
+
+/**
+ * Function for parsing function definitions.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed function definition node.
+ */
+Ast_Result parse_fn_statement(Parser* parser, Token** token);
+
+/**
+ * Function for parsing function return type.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed function return type.
+ */
+Ast_Result parse_ret_type_node(Parser* parser, Token** token);
+
+/**
+ * Function for parsing function call AST node.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed function call node.
+ */
+Ast_Result parse_function_call(Parser* parser, Token** token);
+
 #endif //LANG_PARSER_H
 

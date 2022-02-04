@@ -6,11 +6,6 @@
 
 #include "parser.h"
 
-Ast_Result parse_argument_list(Parser* parser, Token** token);
-
-Ast_Result parse_type_decl_node(Parser* parser, Token** token);
-
-Ast_Result parse_assignment_node(Parser* parser, Token** token);
 
 inline void parser_print_source_code_location(Parser* parser, Token* token) {
 	u32 start_col = token->c0;
@@ -124,7 +119,7 @@ Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 	while (parsed_tokens <= end) {
 		Ast_Result ast_result = parse_statement(parser, &parsed_tokens);
 
-		if (ast_result.error != AST_NO_ERROR ||ast_result.node == NULL)
+		if (ast_result.error != AST_NO_ERROR || ast_result.node == NULL)
 			break;
 
 		list_push(&result.nodes, &ast_result.node);
@@ -153,13 +148,83 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 		return ast_result;
 	}
 
-	if ((*lexer_result)->type == TOK_IF) {
+	if (IS_CURR_OF_TYPE(lexer_result, TOK_IF)) {
 		ast_result = parse_if_statement(parser, lexer_result);
+	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_FN)) {
+		ast_result = parse_fn_statement(parser, lexer_result);
 	} else {
 		ast_result = parse_expression(parser, lexer_result);
 	}
 
 	return ast_result;
+}
+
+Ast_Result parse_fn_statement(Parser* parser, Token** token) {
+	assert(IS_CURR_OF_TYPE(token, TOK_FN));
+	Ast_Result fn_result = parser_create_node(parser, token);
+	Ast_Result left_result = parser_create_node(parser, token);
+	if (left_result.node->type != AST_IDENT) {
+		parser_report_error(parser, *token, "Expected an identifier");
+		fn_result.error = AST_ERROR;
+		return fn_result;
+	}
+
+	fn_result.node->left = left_result.node;
+	if (!IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
+		parser_report_error(parser, *token, "Expected token (");
+		fn_result.error = AST_ERROR;
+		return fn_result;
+	} else {
+		NEXT_TOKEN(token); // skip LPAREN
+	}
+
+	Ast_Result arg_list_result = parse_argument_list(parser, token);
+	if (arg_list_result.error != AST_NO_ERROR) {
+		parser_report_error(parser, *token, "Unable to parse argument list");
+		fn_result.error = AST_ERROR;
+		return fn_result;
+	}
+	fn_result.node->middle = arg_list_result.node;
+
+	if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		NEXT_TOKEN(token);
+	}
+
+	if (IS_CURR_OF_TYPE(token, TOK_THIN_ARRW)) {
+		Ast_Result ret_type_result = parse_ret_type_node(parser, token);
+		if (ret_type_result.error != AST_NO_ERROR) {
+			fn_result.error = AST_ERROR;
+			return fn_result;
+		}
+		fn_result.node->ret_type = ret_type_result.node;
+	}
+
+	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
+		parser_report_error(parser, *token, "Missing function body");
+		fn_result.error = AST_ERROR;
+		return fn_result;
+	}
+
+	Ast_Result fn_body_result = parse_block_node(parser, token);
+	if (fn_body_result.error != AST_NO_ERROR) {
+		fn_result.error = AST_ERROR;
+		return fn_result;
+	}
+	fn_result.node->right = fn_body_result.node;
+
+	return fn_result;
+}
+
+Ast_Result parse_ret_type_node(Parser* parser, Token** token) {
+	Ast_Result result = parser_create_node(parser, token);
+	Ast_Result ret_type_iden = parser_create_node(parser, token);
+	if (ret_type_iden.error != AST_NO_ERROR) {
+		parser_report_error(parser, *token, "Unable to parse return type");
+		result.error = AST_ERROR;
+		return result;
+	}
+	result.node->right = ret_type_iden.node;
+	return result;
 }
 
 Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
@@ -275,17 +340,22 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		ast_result = parse_type_decl_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
 		return parse_block_node(parser, token);
-	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
-		parser_report_error(parser, *token, "Unexpected token }");
+	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE) || IS_CURR_OF_TYPE(token, TOK_COMMA)) {
+		parser_report_error(parser, *token, "Unexpected token");
 		ast_result.error = AST_ERROR;
 		return ast_result;
 	} else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 		NEXT_TOKEN(token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
+			   && IS_PEEK_OF_TYPE(token, TOK_LPAREN)) {
+		parser_create_node(parser, token);
+		ast_result = parse_function_call(parser, token);
 	} else if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 		ast_result = parser_create_node(parser, token);
 	}
 
 	if (IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
+		NEXT_TOKEN(token); // skip LPAREN
 		ast_result = parse_argument_list(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_ASSN)) {
 		ast_result = parse_assignment_node(parser, token);
@@ -315,6 +385,45 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	return ast_result;
 }
 
+Ast_Result parse_function_call(Parser* parser, Token** token) {
+	Ast_Result result;
+	// @Incomplete parse TOK_DOT
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		parser_report_error(parser, *token, "Unable to parse function call");
+		result.error = AST_ERROR;
+		return result;
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
+
+	// @Temporary create a fake lparen token
+	Token lparen_token = **token;
+	lparen_token.type = TOK_LPAREN;
+	result = parser_create_node_no_inc(parser, &lparen_token);
+	result.node->type = AST_FUNC_CALL;
+
+	result.node->left = left_ast_result.node;
+
+	if(!IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
+		parser_report_error(parser, *token, "Expected token (");
+		result.error = AST_ERROR;
+		return result;
+	} else {
+		NEXT_TOKEN(token); // skip LPAREN
+	}
+
+	Ast_Result arg_list_result = parse_argument_list(parser, token);
+	if(arg_list_result.error != AST_NO_ERROR) {
+		result.error = AST_ERROR;
+		return result;
+	}
+
+	result.node->middle = arg_list_result.node;
+
+	return result;
+}
+
 Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_ASSN);
 
@@ -338,11 +447,28 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 
 // @ToDo implement
 Ast_Result parse_argument_list(Parser* parser, Token** token) {
-	Ast_Result result;
-	while (!IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
-		NEXT_TOKEN(token);
+	Ast_Result argument_list_result;
+	// @Temporary create a fake block token
+	Token block_token = **token;
+	block_token.type = TOK_LBRACE;
+
+	argument_list_result = parser_create_node_no_inc(parser, &block_token);
+	// @Temporary
+	argument_list_result.node->type = AST_ARG_LIST;
+
+	while (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		Ast_Result argument_result = parse_expression(parser, token);
+		if (argument_result.error != AST_NO_ERROR) {
+			argument_list_result.error = AST_ERROR;
+			return argument_list_result;
+		}
+		ast_block_node_add_node(argument_list_result.node, argument_result.node);
+		if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+			assert(IS_CURR_OF_TYPE(token, TOK_COMMA));
+			NEXT_TOKEN(token);
+		}
 	}
-	return result;
+	return argument_list_result;
 }
 
 inline void parser_report_error(Parser* parser, Token* token, char* error_text) {
@@ -420,6 +546,16 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 	Ast_Result ast_result = {
 		.error= AST_NO_ERROR,
 		.node= ast_node_new(NEXT_TOKEN(token))
+	};
+
+	stack_push(&parser->node_stack, &ast_result);
+	return ast_result;
+}
+
+Ast_Result parser_create_node_no_inc(Parser* parser, Token* token) {
+	Ast_Result ast_result = {
+		.error= AST_NO_ERROR,
+		.node= ast_node_new(token)
 	};
 
 	stack_push(&parser->node_stack, &ast_result);

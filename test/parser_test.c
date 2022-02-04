@@ -126,4 +126,21 @@ int main(void) {
 	assert(root->right->right->type == AST_IDENT);
 	assert(strcmp(root->right->left->token.string_value.data, "a") == 0);
 	assert(strcmp(root->right->right->token.string_value.data, "b") == 0);
+
+	result = PARSER_TEST_CASE("fn write(file: File, count: u64, byte: u32) -> void {print();}");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 0);
+	assert(root->type == AST_FUNC_DEF);
+	assert(root->left->type == AST_IDENT);
+	assert(root->middle->type == AST_ARG_LIST);
+	assert((*((Ast_Node**)root->middle->nodes))->type == AST_TYPE_DECL);
+	assert((*((Ast_Node**)root->middle->nodes + 1))->type == AST_TYPE_DECL);
+	assert((*((Ast_Node**)root->middle->nodes + 2))->type == AST_TYPE_DECL);
+	assert(root->right->type == AST_BLOCK);
+	assert((*((Ast_Node**)root->right->nodes))->type == AST_FUNC_CALL);
+	assert((*((Ast_Node**)root->right->nodes))->middle->size == 0);
+	assert(root->ret_type->type == AST_FUNC_RET_TYPE);
+
+	result = PARSER_TEST_CASE("write(,,);");
+	assert(result.errors.count == 1);
 }

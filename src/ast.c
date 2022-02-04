@@ -52,6 +52,10 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 			return AST_IDENT;
 		case TOK_LBRACE:
 			return AST_BLOCK;
+		case TOK_FN:
+			return AST_FUNC_DEF;
+		case TOK_THIN_ARRW:
+			return AST_FUNC_RET_TYPE;
 		default:
 			return AST_NODE;
 	}
@@ -101,7 +105,7 @@ Ast_Node* ast_node_new(Token* token) {
 
 // Function for adding parsed AST nodes to the block node
 inline Ast_Node* ast_block_node_add_node(Ast_Node* block_node, Ast_Node* ast_node) {
-	assert(block_node->type == AST_BLOCK);
+	assert(block_node->type == AST_BLOCK || block_node->type == AST_ARG_LIST);
 	memcpy(block_node->nodes + block_node->size++, &ast_node,
 		   sizeof(Ast_Node*));
 	if (block_node->size == block_node->capacity) {
