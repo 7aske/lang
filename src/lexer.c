@@ -12,7 +12,7 @@ inline bool lexer_startof_iden(const char* ptr) {
 // Checks if the string starts with a valid number literal character.
 // @Incomplete maybe handle scientific notation.
 inline bool lexer_startof_number(const char* ptr) {
-	return isdigit(*ptr) || *ptr == '-' || *ptr == '.';
+	return isdigit(*ptr) || *ptr == '.';
 }
 
 // Checks if the string is a valid number character
@@ -114,6 +114,8 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 }
 
 void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 row) {
+	// Reset the token data, so we don't copy invalid bytes around
+	memset(dest, 0, sizeof(Token));
 	dest->type = token;
 	// @Incomplete
 	if (token == TOK_LIT_STR || token == TOK_IDEN || token == TOK_LIT_CHR) {

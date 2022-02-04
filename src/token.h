@@ -170,8 +170,8 @@ static const char* token_repr[] = {
 	STR(__TOK_KEYWORD_END),
 	STR(TOK_IDEN),
 	STR(TOK_LIT_STR),
-	STR(TOK_LIT_INT),
 	STR(TOK_LIT_CHR),
+	STR(TOK_LIT_INT),
 	STR(TOK_LIT_FLT),
 };
 

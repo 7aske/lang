@@ -91,6 +91,7 @@ fputs(__str, stderr);\
 
 // Returns the next token without incrementing the pointer.
 #define PEEK_NEXT(ptr) *((ptr) + 1)
+#define PEEK_PREV(ptr) *((ptr) - 1)
 
 /**
  * Populates an instance of the Lexer struct pointer to by the dest parameter.

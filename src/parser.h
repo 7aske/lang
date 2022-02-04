@@ -43,7 +43,7 @@
 #define PARSER_POP(dest) stack_pop(&parser->node_stack, dest)
 
 // Utility to push an element to the parser node stack.
-#define PARSER_PUSH(src) stack_push(&parser->node_stack, dest)
+#define PARSER_PUSH(src) stack_push(&parser->node_stack, src)
 
 /**
  * Struct representing a parser error.
@@ -104,6 +104,7 @@ typedef struct parser_result {
 #define NEXT_TOKEN(ptrptr) (*(ptrptr))++
 // Checks whether next token in the token list is of type __token.
 #define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) + 1)->type == (__token))
+#define IS_AT_OF_TYPE(__ptrptr, __offset, __token) (((*(__ptrptr)) + __offset)->type == (__token))
 // Checks whether previous token in the token list is of type __token.
 #define IS_PREV_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) - 1)->type == (__token))
 // Checks whether current token in the token list is of type __token.

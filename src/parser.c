@@ -8,6 +8,10 @@
 
 Ast_Result parse_argument_list(Parser* parser, Token** token);
 
+Ast_Result parse_type_decl_node(Parser* parser, Token** token);
+
+Ast_Result parse_assignment_node(Parser* parser, Token** token);
+
 inline void parser_print_source_code_location(Parser* parser, Token* token) {
 	u32 start_col = token->c0;
 	u32 start_row = token->r0;
@@ -115,7 +119,7 @@ Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 	list_new(&result.errors, sizeof(Parser_Error_Report));
 
 	Token* parsed_tokens = lexer->tokens.data;
-	Token* end = ((Token*)lexer->tokens.data) + lexer->tokens.count;
+	Token* end = ((Token*) lexer->tokens.data) + lexer->tokens.count;
 
 	while (parsed_tokens <= end) {
 		Ast_Result ast_result = parse_statement(parser, &parsed_tokens);
@@ -156,6 +160,38 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 	}
 
 	return ast_result;
+}
+
+Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
+	Ast_Result type_decl_result;
+	Ast_Result iden_result = parser_create_node(parser, token);
+	if (iden_result.node->type != AST_IDENT) {
+		parser_report_error(parser, *token, "Token should be of type IDENT");
+		type_decl_result.error = AST_ERROR;
+		return type_decl_result;
+	}
+
+	if (!IS_CURR_OF_TYPE(token, TOK_COL)) {
+		parser_report_error(parser, *token, "Expected token :");
+		type_decl_result.error = AST_ERROR;
+		return type_decl_result;
+	}
+
+	type_decl_result = parser_create_node(parser, token);
+
+	Ast_Result type_result = parser_create_node(parser, token);
+	if (type_result.node->type != AST_IDENT) {
+		parser_report_error(parser, *token, "Token should be of type IDENT");
+		type_decl_result.error = AST_ERROR;
+		return type_decl_result;
+	}
+
+	type_decl_result.node->left = iden_result.node;
+	type_decl_result.node->right = type_result.node;
+
+	PARSER_PUSH(&type_decl_result);
+
+	return type_decl_result;
 }
 
 Ast_Result parse_if_statement(Parser* parser, Token** token) {
@@ -222,19 +258,21 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 			return ast_result;
 		}
 
-		stack_push(&parser->node_stack, &ast_result);
-
+		PARSER_PUSH(&ast_result);
 
 		Ast_Result new = parse_expression(parser, token);
+
 		if (new.node == NULL)
 			return ast_result;
-		ast_result.node->precedence = S32_MAX;
-		// new.node->left = ast_result.node;
 
+		new.node->precedence = S32_MAX;
 		new.node = fix_precedence(new.node);
-		// new.node = fix_precedence(new.node);
-
+		PARSER_PUSH(&new);
 		return new;
+	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
+			   && IS_PEEK_OF_TYPE(token, TOK_COL)
+			   && IS_AT_OF_TYPE(token, 2, TOK_IDEN)) {
+		ast_result = parse_type_decl_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
 		return parse_block_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
@@ -252,6 +290,8 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 
 	if (IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
 		ast_result = parse_argument_list(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_ASSN)) {
+		ast_result = parse_assignment_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_AND) ||
 			   IS_CURR_OF_TYPE(token, TOK_OR)) {
 		ast_result = parse_boolean_node(parser, token);
@@ -266,14 +306,34 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 			   IS_CURR_OF_TYPE(token, TOK_MUL) ||
 			   IS_CURR_OF_TYPE(token, TOK_DIV) ||
 			   IS_CURR_OF_TYPE(token, TOK_MOD)) {
+		// All of these are for now parsed as a generic binary operation.
 		ast_result = parse_binary_operation_node(parser, token);
-		// } else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
-		// 	PARSER_POP(&ast_result);
 	} else if (IS_CURR_OF_TYPE(token, TOK_SCOL)) {
 		return ast_result;
 	}
 
 	return ast_result;
+}
+
+Ast_Result parse_assignment_node(Parser* parser, Token** token) {
+	assert((*token)->type == TOK_ASSN);
+
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		left_ast_result = parser_create_node(parser, token);
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
+	Ast_Result result = parser_create_node(parser, token);
+	Ast_Result right_ast_result = parse_expression(parser, token);
+	if (right_ast_result.error != AST_NO_ERROR) {
+		result.error = right_ast_result.error;
+		return result;
+	}
+	result.node->left = left_ast_result.node;
+	result.node->right = right_ast_result.node;
+
+	return result;
 }
 
 // @ToDo implement
@@ -305,13 +365,50 @@ inline void parser_free(Parser* parser) {
 }
 
 inline Ast_Node* fix_precedence(Ast_Node* node) {
+	// Tree representation of the expression
+	// 5 * 6 + 7
+	//
+	//     *
+	//    / \
+	//   5   +
+	//      / \
+	//     6   7
+	// Initially parsed expression will be evaluated starting with the +
+	// operator which is incorrect. Tree must be rewritten into the
+	// following form:
+	//      +
+	//     / \
+	//    *   7
+	//   / \
+	//  5   6
+	// This way the first evaluation will occur at the * node which is required
+	// to correctly evaluate the + node.
+
+	// First step is to set + node as the root one:
+	//      +
+	//     / \
+	//    6   7
+	// Second step is to put original node as the left child of the root node:
+	//      +
+	//     / \
+	//    *   7
+	//   / \
+	//  5   + <- we have infinite recursion here
+	// Last step is to set left child of the original node as the previous
+	// right child of the new root node:
+	//      +
+	//     / \
+	//    *   7
+	//   / \
+	//  5   6
 	Ast_Node* retval = NULL;
-	if (node->right != NULL && node->precedence > node->right->precedence &&
-		node->right->precedence != 0) {
+	if (node->right != NULL
+		&& node->precedence > node->right->precedence
+		&& node->right->precedence != 0) {
 		retval = node->right;
-		Ast_Node* right_left = node->right->left;
-		node->right->left = node;
-		node->right = right_left;
+		Ast_Node* tmp = retval->left;
+		retval->left = node;
+		node->right = tmp;
 	} else {
 		retval = node;
 	}
