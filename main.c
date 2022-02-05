@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "src/token.h"
 #include "src/lexer.h"
+#include "src/parser.h"
 
 
 int main(int argc, char** argv) {
@@ -35,6 +36,7 @@ int main(int argc, char** argv) {
 	}
 
 	Lexer lexer;
+	Parser parser;
 	lexer_new(&lexer, code_text);
 	lexer_lex(&lexer);
 	List parsed = lexer.tokens;
@@ -52,6 +54,10 @@ int main(int argc, char** argv) {
 	}
 
 	printf("\n%s\n", code_text);
+
+	parser_new(&parser, code_text);
+	parser_parse(&parser, &lexer);
+
 
 	free(code_text);
 }

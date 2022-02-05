@@ -21,7 +21,7 @@ int main(void) {
 	Parser_Result result;
 	Ast_Node* root = NULL;
 
-	result = PARSER_TEST_CASE("if true {1} else {2};");
+	result = PARSER_TEST_CASE("if true {1;} else {2;}");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(root->type == AST_IF);
 	assert(root->middle->type == AST_LITERAL);
@@ -31,30 +31,29 @@ int main(void) {
 	assert(root->right->nodes[0]->type == AST_LITERAL);
 
 
-	result = PARSER_TEST_CASE("if a == true {2} else {3};");
+	result = PARSER_TEST_CASE("if a == true {b=2;} else {b=3;}");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(root->type == AST_IF);
 	assert(root->middle->type == AST_EQUALITY);
 	assert(root->middle->left->type == AST_IDENT);
 	assert(root->middle->right->type == AST_LITERAL);
 	assert(root->left->type == AST_BLOCK);
-	assert(root->left->nodes[0]->type == AST_LITERAL);
+	assert(root->left->nodes[0]->type == AST_ASSIGN);
 	assert(root->right->type == AST_BLOCK);
-	assert(root->right->nodes[0]->type == AST_LITERAL);
+	assert(root->right->nodes[0]->type == AST_ASSIGN);
 
 	result = PARSER_TEST_CASE("a == true { function; }}");
-	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(result.errors.count == 1);
+	assert(result.errors.count >= 1);
 
 	result = PARSER_TEST_CASE("if a == b || b > c && c < d {"
-							  "	print(a,b,c);"
-							  "	print(\"Hello world!\");"
-							  "	b = `David je najjaci!`"
+							  "  print(a,b,c);"
+							  "  print(\"Hello world!\");"
+							  "  b = `David je najjaci!`;"
 							  "} else {"
-							  " a = 42;"
-							  " b = 42;"
-							  " c = 42;"
-							  " d = 42;"
+							  "  a = 42;"
+							  "  b = 42;"
+							  "  c = 42;"
+							  "  d = 42;"
 							  "}");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);

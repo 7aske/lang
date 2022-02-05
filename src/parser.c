@@ -31,6 +31,9 @@ inline void parser_print_source_code_location(Parser* parser, Token* token) {
 
 	print_start = code;
 
+	if (*print_start == '\n')
+		print_start++;
+
 	while (*print_start != '\n') {
 		if (*print_start == '\0') {
 			fputc('\n', stderr);
@@ -40,6 +43,9 @@ inline void parser_print_source_code_location(Parser* parser, Token* token) {
 			print_start++;
 		}
 	}
+
+	if (*print_start == '\n')
+		fputc('\n', stderr);
 
 	PAD_TO(start_col - 1, " ")
 	PAD_TO(end_col - start_col, "^")
@@ -153,7 +159,15 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_FN)) {
 		ast_result = parse_fn_statement(parser, lexer_result);
 	} else {
-		ast_result = parse_expression(parser, lexer_result);
+		while (!IS_CURR_OF_TYPE(lexer_result, TOK_SCOL) && !IS_CURR_OF_TYPE(lexer_result, TOK_INVALID)) {
+			ast_result = parse_expression(parser, lexer_result);
+			if (ast_result.error != AST_NO_ERROR) {
+				return ast_result;
+			}
+		}
+		if (IS_CURR_OF_TYPE(lexer_result, TOK_SCOL)) {
+			NEXT_TOKEN(lexer_result);
+		}
 	}
 
 	return ast_result;
@@ -338,9 +352,15 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 			   && IS_PEEK_OF_TYPE(token, TOK_COL)
 			   && IS_AT_OF_TYPE(token, 2, TOK_IDEN)) {
 		ast_result = parse_type_decl_node(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
+			   && IS_PEEK_OF_TYPE(token, TOK_IDEN)) {
+		parser_report_error(parser, *token, "Unexpected token");
+		ast_result.error = AST_ERROR;
+		return ast_result;
 	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
 		return parse_block_node(parser, token);
-	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE) || IS_CURR_OF_TYPE(token, TOK_COMMA)) {
+	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE)
+			   || IS_CURR_OF_TYPE(token, TOK_COMMA)) {
 		parser_report_error(parser, *token, "Unexpected token");
 		ast_result.error = AST_ERROR;
 		return ast_result;
@@ -375,11 +395,6 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 			   IS_CURR_OF_TYPE(token, TOK_MOD)) {
 		// All of these are for now parsed as a generic binary operation.
 		ast_result = parse_binary_operation_node(parser, token);
-	} else if (IS_CURR_OF_TYPE(token, TOK_SCOL)) {
-		// We skip the expression terminating token and return the so far parsed
-		// expression.
-		NEXT_TOKEN(token);
-		return ast_result;
 	}
 
 	return ast_result;
@@ -445,7 +460,6 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	return result;
 }
 
-// @ToDo implement
 Ast_Result parse_argument_list(Parser* parser, Token** token) {
 	Ast_Result argument_list_result;
 	// @Temporary create a fake block token
@@ -456,6 +470,7 @@ Ast_Result parse_argument_list(Parser* parser, Token** token) {
 	// @Temporary
 	argument_list_result.node->type = AST_ARG_LIST;
 
+	// Parse all the come delimited expressions as argument nodes.
 	while (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 		Ast_Result argument_result = parse_expression(parser, token);
 		if (argument_result.error != AST_NO_ERROR) {
@@ -468,6 +483,13 @@ Ast_Result parse_argument_list(Parser* parser, Token** token) {
 			NEXT_TOKEN(token);
 		}
 	}
+
+	// If the argument list is empty tokens will not be incremented in the
+	// parsing while loop.
+	if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+		NEXT_TOKEN(token);
+	}
+
 	return argument_list_result;
 }
 

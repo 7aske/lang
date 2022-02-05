@@ -10,6 +10,10 @@ fn write(file: File, count: u64, byte: u32) -> void {
 
 }
 
+for list {
+
+}
+
 if true {
 	write(stdout, 1, a);
 }
