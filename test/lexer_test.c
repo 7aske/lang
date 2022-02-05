@@ -156,4 +156,18 @@ int main(void) {
 	assert(list_get_as(&lexer.tokens, 6, Token*)->integer_value == 10);
 	assert(strcmp(list_get_as(&lexer.tokens, 8, Token*)->string_value.data, "a")==0);
 	lexer_free(&lexer);
+
+	char* code13 = "for i in 1..10 {}";
+	lexer_new(&lexer, code13);
+	lexer_lex(&lexer);
+	assert(lexer.tokens.count == 8);
+	assert(list_get_as(&lexer.tokens, 0, Token*)->type == TOK_FOR);
+	assert(list_get_as(&lexer.tokens, 1, Token*)->type == TOK_IDEN);
+	assert(list_get_as(&lexer.tokens, 2, Token*)->type == TOK_IN);
+	assert(list_get_as(&lexer.tokens, 3, Token*)->type == TOK_LIT_INT);
+	assert(list_get_as(&lexer.tokens, 4, Token*)->type == TOK_DDOT);
+	assert(list_get_as(&lexer.tokens, 5, Token*)->type == TOK_LIT_INT);
+	assert(list_get_as(&lexer.tokens, 6, Token*)->type == TOK_LBRACE);
+	assert(list_get_as(&lexer.tokens, 7, Token*)->type == TOK_RBRACE);
+	lexer_free(&lexer);
 }

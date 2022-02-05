@@ -56,6 +56,10 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 			return AST_FUNC_DEF;
 		case TOK_THIN_ARRW:
 			return AST_FUNC_RET_TYPE;
+		case TOK_IN:
+			return AST_IN;
+		case TOK_DDOT:
+			return AST_ITER;
 		default:
 			return AST_NODE;
 	}

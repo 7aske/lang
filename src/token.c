@@ -63,7 +63,11 @@ Token_Type resolve_operator(const char* ptr) {
 		}
 	}
 	if (*ptr == '.') {
-		return TOK_DOT;
+		if (*(ptr + 1) == '.') {
+			return TOK_DDOT;
+		} else {
+			return TOK_DOT;
+		}
 	}
 	if (*ptr == '/') {
 		return TOK_DIV;

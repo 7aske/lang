@@ -326,5 +326,31 @@ Ast_Result parse_ret_type_node(Parser* parser, Token** token);
  */
 Ast_Result parse_function_call(Parser* parser, Token** token);
 
+/**
+ * Function for parsing for statement.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed for statement node.
+ */
+Ast_Result parse_for_statement(Parser* parser, Token** token);
+
+/**
+ * Function for parsing in node.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed in node.
+ */
+Ast_Result parse_in_node(Parser* parser, Token** token);
+
+/**
+ * Function for parsing iter node.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed iter node.
+ */
+Ast_Result parse_iter_node(Parser* parser, Token** token);
 #endif //LANG_PARSER_H
 

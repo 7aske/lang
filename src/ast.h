@@ -34,6 +34,8 @@ typedef enum ast_node_type {
 	AST_FOR,
 	AST_BREAK,
 	AST_CONTINUE,
+	AST_IN,
+	AST_ITER,
 
 	AST_IF,
 	AST_DEFAULT,

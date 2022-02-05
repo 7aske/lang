@@ -71,6 +71,7 @@ typedef enum token_type {
 	TOK_INC,      // ++
 	TOK_DEC,      // --
 	TOK_DOT,      // .
+	TOK_DDOT,     // ..
 	TOK_COMMA,    // ,
 	TOK_SCOL,     // ;
 	TOK_LPAREN,   // (
@@ -159,6 +160,7 @@ static const char* token_repr[] = {
 	STR(TOK_INC),      // ++
 	STR(TOK_DEC),      // --
 	STR(TOK_DOT),      // .
+	STR(TOK_DDOT),     // ..
 	STR(TOK_COMMA),    // ,
 	STR(TOK_SCOL),     // ;
 	STR(TOK_LPAREN),   // (
@@ -216,6 +218,7 @@ static const char* token_value[] = {
 	"++",
 	"--",
 	".",
+	"..",
 	",",
 	";",
 	"(",

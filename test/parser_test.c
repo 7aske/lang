@@ -142,4 +142,24 @@ int main(void) {
 
 	result = PARSER_TEST_CASE("write(,,);");
 	assert(result.errors.count == 1);
+
+	result = PARSER_TEST_CASE("for name in names { print(name); }");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 0);
+	assert(root->type == AST_FOR);
+	assert(root->middle->type == AST_IN);
+	assert(root->middle->left->type== AST_IDENT);
+	assert(root->middle->right->type== AST_IDENT);
+	assert(root->right->type == AST_BLOCK);
+
+	result = PARSER_TEST_CASE("for i in 1..10 { print(i); }");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 0);
+	assert(root->type == AST_FOR);
+	assert(root->middle->type == AST_IN);
+	assert(root->middle->left->type== AST_IDENT);
+	assert(root->middle->right->type== AST_ITER);
+	assert(root->middle->right->left->type== AST_LITERAL);
+	assert(root->middle->right->right->type== AST_LITERAL);
+	assert(root->right->type == AST_BLOCK);
 }

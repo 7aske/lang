@@ -12,13 +12,15 @@ inline bool lexer_startof_iden(const char* ptr) {
 // Checks if the string starts with a valid number literal character.
 // @Incomplete maybe handle scientific notation.
 inline bool lexer_startof_number(const char* ptr) {
-	return isdigit(*ptr) || *ptr == '.';
+	return isdigit(*ptr)
+		   ||
+		   (*ptr == '.' && (PEEK_PREV(ptr) != '.' && PEEK_NEXT(ptr) != '.'));
 }
 
 // Checks if the string is a valid number character
 // @Incomplete maybe handle scientific notation.
 inline bool lexer_is_number(const char* ptr) {
-	return isdigit(*ptr) || *ptr == '.';
+	return isdigit(*ptr) || (*ptr == '.' && PEEK_NEXT(ptr) != '.');
 }
 
 // Checks if the string starts with a valid quote for identifying a string.
@@ -165,12 +167,14 @@ u32 lexer_lex(Lexer* lexer) {
 
 		if (lexer_startof_iden(ptr)) {
 			size = lexer_eat_iden(&ptr, string_buffer);
-			Token_Type possible_token = resolve_token(string_buffer->data, size);
+			Token_Type possible_token = resolve_token(string_buffer->data,
+													  size);
 			// If the result is TOK_INVALID that means that the parsed word is
 			// an identifier.
 			if (possible_token == TOK_INVALID) {
 				lexer_token_new(&token, TOK_IDEN, size, col, row);
-				strncpy(token.string_value.data, string_buffer->data, string_buffer->count);
+				strncpy(token.string_value.data, string_buffer->data,
+						string_buffer->count);
 			} else {
 				lexer_token_new(&token, possible_token, size, col, row);
 			}
@@ -180,24 +184,29 @@ u32 lexer_lex(Lexer* lexer) {
 			size = lexer_eat_char(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
-				lexer_report_error(lexer, TOK_LIT_CHR, col, row, "Invalid char literal");
+				lexer_report_error(lexer, TOK_LIT_CHR, col, row,
+								   "Invalid char literal");
 				break;
 			}
 
 			lexer_token_new(&token, TOK_LIT_CHR, size, col, row);
-			strncpy(token.string_value.data, string_buffer->data, string_buffer->count + 1);
+			strncpy(token.string_value.data, string_buffer->data,
+					string_buffer->count + 1);
 			list_push(&lexer->tokens, &token);
 			col += 2 + size; // 2 is for two quotes;
 		} else if (lexer_startof_string(ptr)) {
 			size = lexer_eat_string(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
-				lexer_report_error(lexer, TOK_LIT_STR, col, row, "Unquoted string");
+				lexer_report_error(lexer, TOK_LIT_STR, col, row,
+								   "Unquoted string");
 				break;
 			}
 
-			lexer_token_new(&token, TOK_LIT_STR, string_buffer->count, col, row);
-			strncpy(token.string_value.data, string_buffer->data, string_buffer->count + 1);
+			lexer_token_new(&token, TOK_LIT_STR, string_buffer->count, col,
+							row);
+			strncpy(token.string_value.data, string_buffer->data,
+					string_buffer->count + 1);
 			list_push(&lexer->tokens, &token);
 			col += (int) size;
 		} else if (lexer_startof_number(ptr) && PEEK_NEXT(ptr) != '>') {
@@ -243,7 +252,8 @@ u32 lexer_lex(Lexer* lexer) {
 	// @Temporary
 	list_foreach(&lexer->errors, Lexer_Error_Report*, {
 		lexer_print_source_code_location(lexer, it);
-		fprintf(stderr, "%s @ %s:%lu:%lu\n", it->text, "__FILE__", it->row, it->col);
+		fprintf(stderr, "%s @ %s:%lu:%lu\n", it->text, "__FILE__", it->row,
+				it->col);
 	})
 
 	return lexer->errors.count;

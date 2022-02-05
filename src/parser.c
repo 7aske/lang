@@ -6,7 +6,6 @@
 
 #include "parser.h"
 
-
 inline void parser_print_source_code_location(Parser* parser, Token* token) {
 	u32 start_col = token->c0;
 	u32 start_row = token->r0;
@@ -158,8 +157,11 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 		ast_result = parse_if_statement(parser, lexer_result);
 	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_FN)) {
 		ast_result = parse_fn_statement(parser, lexer_result);
+	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_FOR)) {
+		ast_result = parse_for_statement(parser, lexer_result);
 	} else {
-		while (!IS_CURR_OF_TYPE(lexer_result, TOK_SCOL) && !IS_CURR_OF_TYPE(lexer_result, TOK_INVALID)) {
+		while (!IS_CURR_OF_TYPE(lexer_result, TOK_SCOL) &&
+			   !IS_CURR_OF_TYPE(lexer_result, TOK_INVALID)) {
 			ast_result = parse_expression(parser, lexer_result);
 			if (ast_result.error != AST_NO_ERROR) {
 				return ast_result;
@@ -171,6 +173,33 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 	}
 
 	return ast_result;
+}
+
+Ast_Result parse_for_statement(Parser* parser, Token** token) {
+	Ast_Result for_statement = parser_create_node(parser, token);
+	Ast_Result for_condition = parse_expression(parser, token);
+	if (for_statement.error != AST_NO_ERROR) {
+		for_statement.error = for_condition.error;
+		return for_statement;
+	}
+
+	for_statement.node->middle = for_condition.node;
+
+	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
+		parser_report_error(parser, *token, "Expected token {");
+		for_statement.error = AST_ERROR;
+		return for_statement;
+	}
+
+	Ast_Result for_body = parse_expression(parser, token);
+	if (for_body.error != AST_NO_ERROR) {
+		for_statement.error = for_body.error;
+		return for_statement;
+	}
+
+	for_statement.node->right = for_body.node;
+
+	return for_statement;
 }
 
 Ast_Result parse_fn_statement(Parser* parser, Token** token) {
@@ -324,6 +353,8 @@ Ast_Result parse_block_node(Parser* parser, Token** token) {
 Ast_Result parse_expression(Parser* parser, Token** token) {
 	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
 
+	// FIRST STEP
+
 	// @Temporary if the previous token is an in identifier that means that
 	// we're parsing a function call
 	if (IS_CURR_OF_TYPE(token, TOK_LPAREN) &&
@@ -374,11 +405,17 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		ast_result = parser_create_node(parser, token);
 	}
 
+	// SECOND STEP
+
 	if (IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
 		NEXT_TOKEN(token); // skip LPAREN
 		ast_result = parse_argument_list(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_ASSN)) {
 		ast_result = parse_assignment_node(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_IN)) {
+		ast_result = parse_in_node(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_DDOT)) {
+		ast_result = parse_iter_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_AND) ||
 			   IS_CURR_OF_TYPE(token, TOK_OR)) {
 		ast_result = parse_boolean_node(parser, token);
@@ -398,6 +435,57 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	}
 
 	return ast_result;
+}
+
+Ast_Result parse_iter_node(Parser* parser, Token** token) {
+	Ast_Result iter_node;
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		parser_report_error(parser, *token, "Unable to parse iterator");
+		iter_node.error = AST_ERROR;
+		return iter_node;
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
+	iter_node = parser_create_node(parser, token);
+
+	iter_node.node->left = left_ast_result.node;
+
+	Ast_Result right_ast_result = parse_expression(parser, token);
+	if (right_ast_result.error != AST_NO_ERROR) {
+		iter_node.error = right_ast_result.error;
+		return iter_node;
+	}
+
+	iter_node.node->right = right_ast_result.node;
+
+
+	return iter_node;
+}
+
+Ast_Result parse_in_node(Parser* parser, Token** token) {
+	Ast_Result in_node;
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		parser_report_error(parser, *token, "Unable to parse in node");
+		in_node.error = AST_ERROR;
+		return in_node;
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
+	in_node = parser_create_node(parser, token);
+
+	in_node.node->left = left_ast_result.node;
+
+	Ast_Result right_ast_result = parse_expression(parser, token);
+	if (right_ast_result.error != AST_NO_ERROR) {
+		in_node.error = right_ast_result.error;
+		return in_node;
+	}
+
+	in_node.node->right = right_ast_result.node;
+
+	return in_node;
 }
 
 Ast_Result parse_function_call(Parser* parser, Token** token) {
@@ -420,7 +508,7 @@ Ast_Result parse_function_call(Parser* parser, Token** token) {
 
 	result.node->left = left_ast_result.node;
 
-	if(!IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
+	if (!IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
 		parser_report_error(parser, *token, "Expected token (");
 		result.error = AST_ERROR;
 		return result;
@@ -429,7 +517,7 @@ Ast_Result parse_function_call(Parser* parser, Token** token) {
 	}
 
 	Ast_Result arg_list_result = parse_argument_list(parser, token);
-	if(arg_list_result.error != AST_NO_ERROR) {
+	if (arg_list_result.error != AST_NO_ERROR) {
 		result.error = AST_ERROR;
 		return result;
 	}
@@ -477,7 +565,8 @@ Ast_Result parse_argument_list(Parser* parser, Token** token) {
 			argument_list_result.error = AST_ERROR;
 			return argument_list_result;
 		}
-		ast_block_node_add_node(argument_list_result.node, argument_result.node);
+		ast_block_node_add_node(argument_list_result.node,
+								argument_result.node);
 		if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 			assert(IS_CURR_OF_TYPE(token, TOK_COMMA));
 			NEXT_TOKEN(token);
