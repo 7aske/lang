@@ -18,6 +18,7 @@ inline void stack_new(Stack* stack, u64 size) {
 	stack->size = size;
 	stack->count = 0;
 	stack->data = (void*) calloc(stack->capacity, stack->size);
+	stack->base = stack->data;
 }
 
 inline void stack_push(Stack* stack, void* data) {

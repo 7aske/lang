@@ -18,10 +18,15 @@ set(SOURCE_FILES
         src/stack.h
         src/list.c
         src/list.h
+        src/interpreter.c
+        src/interpreter.h
+        src/bytecode.c
+        src/bytecode.h
         src/stdtypes.h
         )
 
 add_executable(lang main.c ${SOURCE_FILES})
+add_executable(vm vm.c ${SOURCE_FILES})
 
 # TESTS
 include(CTest)

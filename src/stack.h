@@ -22,7 +22,14 @@ typedef struct stack  {
 	u64 count;
 	u64 size;
 	void* data;
+	void* base;
 } Stack;
+
+#define stack_foreach(__stack, __Type, code) { \
+for(int _i = ((__stack)->count - 1); _i >= 0; --_i) { \
+    __Type it = (__Type) ((__stack)->base + (_i * (__stack)->size));\
+    code\
+}}
 
 /**
  * Populates the stack allocated at with required data specified by size.
