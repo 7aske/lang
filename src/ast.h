@@ -18,6 +18,7 @@ typedef enum ast_node_type {
 	AST_NODE = -1,
 	AST_ASSIGN,
 	AST_IDENT,
+	AST_LVIDENT,
 	AST_LITERAL,
 
 	AST_ARITHMETIC,

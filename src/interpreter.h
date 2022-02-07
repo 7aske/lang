@@ -10,28 +10,26 @@
 #include "bytecode.h"
 #include "ast.h"
 
+#define VM_REG_SIZE 4
+
+typedef struct symbol {
+	char* name;
+} Symbol;
+
 typedef struct interpreter {
 	Stack instructions;
 	List  nodes;
+	FILE* output;
+	int   freereg[VM_REG_SIZE];
+	char* registers[VM_REG_SIZE];
+	List  symbols;
 } Interpreter;
-
-#define VM_REG_SIZE 32
-
-#define R0 0
-#define R1 1
-#define R2 2
-#define R3 3
-
-typedef struct vm {
-	List instructions;
-	u64  registers[VM_REG_SIZE];
-} Vm;
 
 void interpreter_run(Interpreter* interpreter);
 
-void interpreter_new(Interpreter* interpreter, List* nodes);
+void interpreter_new(Interpreter* interpreter, List* nodes, FILE* file);
 
-Decode_Result interpreter_decode(Interpreter* interpreter, Ast_Node* node);
+s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg);
 
 void interpreter_push(Interpreter* interpreter, Instruction instruction);
 

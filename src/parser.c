@@ -375,7 +375,6 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		if (new.node == NULL)
 			return ast_result;
 
-		new.node->precedence = S32_MAX;
 		new.node = fix_precedence(new.node);
 		PARSER_PUSH(&new);
 		return new;
@@ -544,6 +543,14 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	}
 	result.node->left = left_ast_result.node;
 	result.node->right = right_ast_result.node;
+
+	if (result.node->left != NULL && result.node->left->type == AST_IDENT)  {
+		result.node->left->type = AST_LVIDENT;
+	}
+
+	if (result.node->left != NULL && result.node->left->type == AST_TYPE_DECL)  {
+		result.node->left->left->type = AST_LVIDENT;
+	}
 
 	return result;
 }
