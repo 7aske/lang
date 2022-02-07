@@ -361,6 +361,7 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		!IS_PREV_OF_TYPE(token, TOK_IDEN)) {
 		NEXT_TOKEN(token);
 		ast_result = parse_expression(parser, token);
+		ast_result.node->precedence = S32_MAX;
 
 		if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 			parser_report_error(parser, *token, "Expected token )");

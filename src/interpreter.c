@@ -181,7 +181,7 @@ void cg_globsym(Interpreter* interpreter, const char* name) {
 }
 
 // Store a register's value into a variable
-s32 cg_storglob(Interpreter* interpreter, s32 r, char* name) {
+s32 cg_storglob(Interpreter* interpreter, s32 r, const char* name) {
 	if (r == -1) return r;
 	fprintf(interpreter->output, "\t# cg_storglob\n");
 	fprintf(interpreter->output, "\tmovq\t%s, %s(%%rip)\n",
@@ -192,7 +192,7 @@ s32 cg_storglob(Interpreter* interpreter, s32 r, char* name) {
 
 // Load a value from a variable into a register.
 // Return the number of the register
-s32 cg_loadglob(Interpreter* interpreter, char* name) {
+s32 cg_loadglob(Interpreter* interpreter, const char* name) {
 	fprintf(interpreter->output, "\t# cg_loadglob\n");
 	// Get a new register
 	s32 r = alloc_register(interpreter);
@@ -227,12 +227,14 @@ void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg) {
 	s32 leftreg, rightreg;
 	const char* name;
-	if (node->left) {
-		leftreg = interpreter_decode(interpreter, node->left, -1);
-	}
 	if (node->right) {
-		if (node->type == AST_TYPE_DECL) rightreg = -1;
-		else rightreg = interpreter_decode(interpreter, node->right, leftreg);
+		rightreg = interpreter_decode(interpreter, node->right, -1);
+	}
+	if (node->left) {
+		// @Temporary @Hack to persist the register returned by the right tree
+		// parsing of the assignment node + type decl
+		if (node->type == AST_TYPE_DECL && rightreg == -1)  rightreg = reg;
+		leftreg = interpreter_decode(interpreter, node->left, rightreg);
 	}
 
 	switch (node->type) {
@@ -249,16 +251,18 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg) {
 			}
 			break;
 		case AST_TYPE_DECL:
-			name = node->left->token.string_value.data;
-			if (findglob(interpreter, name) == -1) {
-				cg_globsym(interpreter, name);
-				return -1;
-			}
-			return cg_storglob(interpreter, leftreg, node->token.string_value.data);
+			return reg;
 		case AST_LVIDENT:
-			return cg_storglob(interpreter, reg, node->token.string_value.data);
+			name = node->token.string_value.data;
+			if (findglob(interpreter, name) == -1) {
+				addglob(interpreter, name);
+				cg_globsym(interpreter, name);
+			}
+			return cg_storglob(interpreter, reg, name);
 		case AST_IDENT:
-			return cg_loadglob(interpreter, node->token.string_value.data);
+			name = node->token.string_value.data;
+			if (findglob(interpreter, name) == -1) return -1;
+			return cg_loadglob(interpreter, name);
 		case AST_ASSIGN:
 			return rightreg;
 		case AST_LITERAL:

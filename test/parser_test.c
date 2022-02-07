@@ -104,14 +104,14 @@ int main(void) {
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->type == AST_IDENT);
+	assert(root->left->type == AST_LVIDENT);
 	assert(root->right->type == AST_LITERAL);
 
 	result = PARSER_TEST_CASE("a = (a + b) - 1; a = a + b;");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->type == AST_IDENT);
+	assert(root->left->type == AST_LVIDENT);
 	assert(root->right->type == AST_ARITHMETIC);
 	assert(root->right->token.type == TOK_SUB);
 	assert(root->right->left->type == AST_ARITHMETIC);
@@ -119,7 +119,7 @@ int main(void) {
 	assert(root->right->right->type == AST_LITERAL);
 	root = *(Ast_Node**) list_get(&result.nodes, 1);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->type == AST_IDENT);
+	assert(root->left->type == AST_LVIDENT);
 	assert(root->right->type == AST_ARITHMETIC);
 	assert(root->right->left->type == AST_IDENT);
 	assert(root->right->right->type == AST_IDENT);
