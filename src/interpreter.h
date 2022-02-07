@@ -22,6 +22,7 @@ typedef struct interpreter {
 	FILE* output;
 	int   freereg[VM_REG_SIZE];
 	char* registers[VM_REG_SIZE];
+	char* b_registers[VM_REG_SIZE];
 	List  symbols;
 } Interpreter;
 

@@ -34,6 +34,7 @@ static s32 alloc_register(Interpreter* interpreter) {
 // Check to see if it's not already there.
 static void free_register(Interpreter* interpreter, s32 reg) {
 	if (interpreter->freereg[reg] != 0) {
+		assert(false);
 		fprintf(stderr, "Error trying to free register %d\n", reg);
 		exit(1);
 	}
@@ -143,7 +144,10 @@ void cg_print_int(Interpreter* interpreter, s32 reg) {
 	fprintf(interpreter->output, "\tmovq\t%s, %%rdi\n",
 			interpreter->registers[reg]);
 	fprintf(interpreter->output, "\tcall\tprintint\n");
-	free_register(interpreter, reg);
+	// @Temporary
+	if (!interpreter->freereg[reg]){
+		free_register(interpreter, reg);
+	}
 }
 
 // Determine if the symbol s is in the global symbol table.
@@ -203,6 +207,44 @@ s32 cg_loadglob(Interpreter* interpreter, const char* name) {
 	return (r);
 }
 
+// Compare two registers.
+static s32 cg_compare(Interpreter* interpreter, s32 r1, s32 r2, char *op) {
+	fprintf(interpreter->output, "\t# cg_compare %s\n", op);
+	fprintf(interpreter->output, "\tcmpq\t%s, %s\n",
+			interpreter->registers[r2],
+			interpreter->registers[r1]);
+	fprintf(interpreter->output, "\t%s\t%s\n",
+			op, interpreter->b_registers[r2]);
+	fprintf(interpreter->output, "\tandq\t$255,%s\n",
+			interpreter->registers[r2]);
+	free_register(interpreter, r1);
+	return (r2);
+}
+
+s32 cg_equal(Interpreter* interpreter, s32 r1, s32 r2) {
+	return (cg_compare(interpreter, r1, r2, "sete"));
+}
+
+s32 cg_notequal(Interpreter* interpreter, s32 r1, s32 r2) {
+	return (cg_compare(interpreter, r1, r2, "setne"));
+}
+
+s32 cg_lessthan(Interpreter* interpreter, s32 r1, s32 r2) {
+	return (cg_compare(interpreter, r1, r2, "setl"));
+}
+
+s32 cg_greaterthan(Interpreter* interpreter, s32 r1, s32 r2) {
+	return (cg_compare(interpreter, r1, r2, "setg"));
+}
+
+s32 cg_lessequal(Interpreter* interpreter, s32 r1, s32 r2) {
+	return (cg_compare(interpreter, r1, r2, "setle"));
+}
+
+s32 cg_greaterequal(Interpreter* interpreter, s32 r1, s32 r2) {
+	return (cg_compare(interpreter, r1, r2, "setge"));
+}
+
 void interpreter_run(Interpreter* interpreter) {
 	cg_preamble(interpreter);
 	int reg;
@@ -220,11 +262,21 @@ void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 	interpreter->registers[1] = "%r9";
 	interpreter->registers[2] = "%r10";
 	interpreter->registers[3] = "%r11";
+	interpreter->b_registers[0] = "%r8b";
+	interpreter->b_registers[1] = "%r9b";
+	interpreter->b_registers[2] = "%r10b";
+	interpreter->b_registers[3] = "%r11b";
 	interpreter->output = output;
 	list_new(&interpreter->symbols, sizeof(Symbol));
 }
 
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg) {
+	if (node->type == AST_BLOCK) {
+		for (s32 i = 0; i < node->size; ++i) {
+			interpreter_decode(interpreter, *(node->nodes + i), -1);
+		}
+		return -1;
+	}
 	s32 leftreg, rightreg;
 	const char* name;
 	if (node->right) {
@@ -238,6 +290,26 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg) {
 	}
 
 	switch (node->type) {
+		case AST_EQUALITY:
+			switch (node->token.type) {
+				case TOK_EQ:
+					return cg_equal(interpreter, leftreg, rightreg);
+				case TOK_NE:
+					return cg_notequal(interpreter, leftreg, rightreg);
+			}
+			break;
+		case AST_RELATIONAL:
+			switch (node->token.type) {
+				case TOK_GT:
+					return cg_greaterthan(interpreter, leftreg, rightreg);
+				case TOK_GE:
+					return cg_greaterequal(interpreter, leftreg, rightreg);
+				case TOK_LT:
+					return cg_lessthan(interpreter, leftreg, rightreg);
+				case TOK_LE:
+					return cg_lessequal(interpreter, leftreg, rightreg);
+			}
+			break;
 		case AST_ARITHMETIC:
 			switch (node->token.type) {
 				case TOK_ADD:
@@ -278,8 +350,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg) {
 					// @Todo ADDR
 					break;
 				case TOK_NULL:
-					// TOTALLY FORGOT ABOUT NULL? Are we Kotlin yet?
-					break;
+					return cg_load(interpreter, 0);
 			}
 			break;
 	}
