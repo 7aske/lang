@@ -319,7 +319,6 @@ void interpreter_run(Interpreter* interpreter) {
 
 void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 	memcpy(&interpreter->nodes, nodes, sizeof(List));
-	stack_new(&interpreter->instructions, sizeof(Instruction));
 
 	interpreter->registers[0] = "%r8";
 	interpreter->registers[1] = "%r9";
@@ -558,10 +557,6 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			break;
 	}
 	return 0;
-}
-
-void interpreter_push(Interpreter* interpreter, Instruction instruction) {
-	stack_push(&interpreter->instructions, &instruction);
 }
 
 #pragma clang diagnostic pop

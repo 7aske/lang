@@ -8,7 +8,6 @@
 #include "list.h"
 #include "stack.h"
 #include "token.h"
-#include "bytecode.h"
 #include "ast.h"
 
 #define VM_REG_SIZE 4
@@ -27,7 +26,6 @@ typedef struct symbol {
 } Symbol;
 
 typedef struct interpreter {
-	Stack instructions;
 	List  nodes;
 	FILE* output;
 	int   freereg[VM_REG_SIZE];
@@ -43,7 +41,5 @@ void interpreter_run(Interpreter* interpreter);
 void interpreter_new(Interpreter* interpreter, List* nodes, FILE* file);
 
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent);
-
-void interpreter_push(Interpreter* interpreter, Instruction instruction);
 
 #endif //LANG_INTERPRETER_H

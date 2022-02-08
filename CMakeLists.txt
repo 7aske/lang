@@ -20,8 +20,6 @@ set(SOURCE_FILES
         src/list.h
         src/interpreter.c
         src/interpreter.h
-        src/bytecode.c
-        src/bytecode.h
         src/stdtypes.h
         )
 
