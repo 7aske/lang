@@ -38,6 +38,11 @@ inline bool lexer_is_iden(const char* ptr) {
 	return (isalnum(*ptr) || *ptr == '$' || *ptr == '_') && !isspace(*ptr);
 }
 
+// Checks if while parsing the identifier next character is an identifier.
+inline bool lexer_startof_linecomment(const char* ptr) {
+	return *ptr == '/' && *(ptr + 1) == '/';
+}
+
 u32 lexer_eat_iden(char** code, String_Buffer* string_buffer) {
 	char* ptr = *code;
 	while (lexer_is_iden(ptr)) {
@@ -166,6 +171,17 @@ u32 lexer_lex(Lexer* lexer) {
 
 		// We reset the buffer before using it
 		string_buffer_cut(string_buffer);
+
+		if (lexer_startof_linecomment(ptr)) {
+			ptr+= 2; // skip comment start
+			while (ptr && *ptr != '\n') {
+				col++;
+				ptr++;
+			}
+			// We don't want to skip the ending newline to prevent messing up
+			// the row count of the file.
+			continue;
+		}
 
 		if (lexer_startof_iden(ptr)) {
 			size = lexer_eat_iden(&ptr, string_buffer);

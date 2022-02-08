@@ -131,10 +131,16 @@ bool lexer_startof_number(const char* ptr);
 bool lexer_startof_string(const char* ptr);
 
 /**
- * @param ptr Pointer to the current character being parsed.
- * @return True if the current character a valid of start a character literal token.
+ * @param ptr pointer to the current character being parsed.
+ * @return true if the current character a valid of start a character literal token.
  */
 bool lexer_startof_char(const char* ptr);
+
+/**
+ * @param ptr pointer to the current character being parsed.
+ * @return true if the current character a valid of start a line comment.
+ */
+bool lexer_startof_linecomment(const char* ptr);
 
 /**
  * @param ptr Pointer to the current character being parsed.
