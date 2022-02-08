@@ -7,6 +7,7 @@
 
 #include "list.h"
 #include "stack.h"
+#include "token.h"
 #include "bytecode.h"
 #include "ast.h"
 
@@ -19,7 +20,10 @@ static char* invcmplist[] =
 
 typedef struct symbol {
 	const char* name;
-	s32   end_label;
+	u32         size;
+	Primitive   p_type;
+	s32         c_type;
+	s32         end_label;
 } Symbol;
 
 typedef struct interpreter {
@@ -30,7 +34,7 @@ typedef struct interpreter {
 	char* registers[VM_REG_SIZE];
 	char* b_registers[VM_REG_SIZE];
 	char* d_registers[VM_REG_SIZE];
-	List  symbols;
+	List  symbols; // @Optimization this should be by all means a hash table
 	s32   label;
 } Interpreter;
 

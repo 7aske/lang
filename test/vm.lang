@@ -3,8 +3,8 @@ fn _print() {
 }
 
 fn main() {
-	a:int = 5;
-	b:int = 6 + 5;
+	a:s8  = 5;
+	b:s32 = 6 + 5;
 
 	a = a * (b + 1);
 

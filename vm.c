@@ -54,6 +54,10 @@ int main(int argc, char** argv) {
 	interpreter_run(&interpreter);
 
 	free(code_text);
+	fflush(output);
+	fclose(output);
+	// @Temporary
+	system("cc -o out/out out/out.s lib/print.c");
 }
 
 

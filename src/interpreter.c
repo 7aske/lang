@@ -160,7 +160,7 @@ s32 addglobsym(Interpreter* interpreter, Symbol symbol) {
 	if ((y = findglob(interpreter, symbol.name)) != -1)
 		return y;
 
-	// Otherwise get a new slot, fill it in and
+	// Otherwise, get a new slot, fill it in and
 	// return the slot number
 	list_push(&interpreter->symbols, &symbol);
 	return interpreter->symbols.count - 1;
@@ -168,19 +168,18 @@ s32 addglobsym(Interpreter* interpreter, Symbol symbol) {
 
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table
-s32 addglob(Interpreter* interpreter, const char* name) {
-	Symbol symbol = {.name = strdup(name)};
+s32 addglob(Interpreter* interpreter, const char* name, Primitive p_type) {
+	Symbol symbol = {.name = strdup(name), .p_type=p_type};
+
 	return addglobsym(interpreter, symbol);
 }
 
 // Generate a global symbol
-void cg_globsym(Interpreter* interpreter, const char* name) {
-	// @ToDo get variable size
-	s8 size = 8;
-	// size = cgprimsize(Gsym[id].type);
+void cg_globsym(Interpreter* interpreter, const char* name, Primitive type) {
+	s32 size = type == TOK_P_CHAR ? 1 : 8;
 
 	fprintf(interpreter->output, "\t# cg_globsym\n");
-	fprintf(interpreter->output, "\t.comm\t%s,%d,%d\n",
+	fprintf(interpreter->output, "\t.comm\t%s,%ld,%ld\n",
 			name, size, size);
 }
 
@@ -188,8 +187,18 @@ void cg_globsym(Interpreter* interpreter, const char* name) {
 s32 cg_storglob(Interpreter* interpreter, s32 r, const char* name) {
 	if (r == -1) return r;
 	fprintf(interpreter->output, "\t# cg_storglob\n");
-	fprintf(interpreter->output, "\tmovq\t%s, %s(%%rip)\n",
-			interpreter->registers[r], name);
+
+
+	Symbol* symbol = findglobsym(interpreter, name);
+	assert(symbol != NULL);
+
+	if (symbol->p_type >= TOK_P_INT) {
+		fprintf(interpreter->output, "\tmovq\t%s, %s(%%rip)\n",
+				interpreter->registers[r], name);
+	} else {
+		fprintf(interpreter->output, "\tmovb\t%s, %s(%%rip)\n",
+				interpreter->b_registers[r], name);
+	}
 	free_register(interpreter, r);
 	return (r);
 }
@@ -201,9 +210,17 @@ s32 cg_loadglob(Interpreter* interpreter, const char* name) {
 	// Get a new register
 	s32 r = alloc_register(interpreter);
 
+	Symbol* symbol = findglobsym(interpreter, name);
+	assert(symbol != NULL);
+
 	// Print out the code to initialise it
-	fprintf(interpreter->output, "\tmovq\t%s(%%rip), %s\n",
-			name, interpreter->registers[r]);
+	if (symbol->p_type >= TOK_P_INT){
+		fprintf(interpreter->output, "\tmovq\t%s(%%rip), %s\n",
+				name, interpreter->registers[r]);
+	} else {
+		fprintf(interpreter->output, "\tmovzbq\t%s(%%rip), %s\n",
+				name, interpreter->registers[r]);
+	}
 	return (r);
 }
 
@@ -423,7 +440,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	} else if (node->type == AST_FUNC_DEF) {
 		name = node->left->token.string_value.data;
 		s32 end_label = get_label(interpreter);
-		addglobsym(interpreter, (Symbol){.name=name, .end_label=end_label});
+		addglobsym(interpreter, (Symbol) {.name=name, .end_label=end_label, .p_type=TOK_P_LONG});
 		cg_funcpreamble(interpreter, name);
 		interpreter_decode(interpreter, node->right, -1, node);
 		cg_label(interpreter, end_label);
@@ -513,8 +530,8 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		case AST_LVIDENT:
 			name = node->token.string_value.data;
 			if (findglob(interpreter, name) == -1) {
-				addglob(interpreter, name);
-				cg_globsym(interpreter, name);
+				addglob(interpreter, name, node->token.p_type);
+				cg_globsym(interpreter, name, node->token.p_type);
 			}
 			return cg_storglob(interpreter, reg, name);
 		case AST_IDENT:
