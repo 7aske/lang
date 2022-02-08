@@ -18,6 +18,8 @@ set(SOURCE_FILES
         src/stack.h
         src/list.c
         src/list.h
+        src/type.c
+        src/type.h
         src/interpreter.c
         src/interpreter.h
         src/stdtypes.h

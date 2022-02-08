@@ -102,12 +102,7 @@ typedef struct ast_node {
 			struct ast_node* right;
 			struct ast_node* ret_type; // used for functions.
 		};
-		// Block nodes
-		struct {
-			struct ast_node** nodes;
-			u32 size;
-			u32 capacity;
-		};
+		List nodes;
 	};
 	s32 precedence;
 	Ast_Node_Type type;

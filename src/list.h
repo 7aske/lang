@@ -62,6 +62,7 @@ void* list_get(List* list, s64 index);
 
 // Utility macro to auto-cast the result to provided __type.
 #define list_get_as(__list, __index, __type) ((__type)list_get(__list, __index))
+#define list_get_as_deref(__list, __index, __type) (*((__type*)list_get(__list, __index)))
 
 /**
  * Removes the element at index.

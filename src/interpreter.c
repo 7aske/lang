@@ -169,7 +169,7 @@ s32 addglobsym(Interpreter* interpreter, Symbol symbol) {
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table
 s32 addglob(Interpreter* interpreter, const char* name, Primitive p_type) {
-	Symbol symbol = {.name = strdup(name), .p_type=p_type};
+	Symbol symbol = {.name = strdup(name)};
 
 	return addglobsym(interpreter, symbol);
 }
@@ -446,8 +446,8 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		cg_funcpostamble(interpreter);
 		return -1;
 	} else if (node->type == AST_BLOCK) {
-		for (s32 i = 0; i < node->size; ++i) {
-			retreg = interpreter_decode(interpreter, *(node->nodes + i), retreg,
+		for (s32 i = 0; i < node->nodes.count; ++i) {
+			retreg = interpreter_decode(interpreter, list_get_as(&node->nodes, i, Ast_Node*), retreg,
 										node);
 		}
 		return retreg;
@@ -471,10 +471,10 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			return -1;
 		case AST_FUNC_CALL:
 			name = node->left->token.string_value.data;
-			if (node->middle->size != 0) {
+			if (node->middle->nodes.count != 0) {
 				// @ToDo parse argument list
 				leftreg = interpreter_decode(interpreter,
-											 node->middle->nodes[0],
+											 list_get_as(&node->middle->nodes, 0, Ast_Node*),
 											 -1,
 											 parent);
 			} else {

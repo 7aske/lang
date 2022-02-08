@@ -338,8 +338,9 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result.node->left = iden_result.node;
 	type_decl_result.node->right = type_result.node;
 
+	// @ToDo
 	// Set primitive type
-	type_decl_result.node->left->token.p_type = type_decl_result.node->right->token.p_type;
+	// type_decl_result.node->left->token.p_type = type_decl_result.node->right->token.p_type;
 
 	PARSER_PUSH(&type_decl_result);
 

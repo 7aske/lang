@@ -9,6 +9,7 @@
 #include "stack.h"
 #include "token.h"
 #include "ast.h"
+#include "type.h"
 
 #define VM_REG_SIZE 4
 
@@ -21,7 +22,6 @@ typedef struct symbol {
 	const char* name;
 	u32         size;
 	Primitive   p_type;
-	s32         c_type;
 	s32         end_label;
 } Symbol;
 

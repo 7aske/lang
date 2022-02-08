@@ -26,9 +26,9 @@ int main(void) {
 	assert(root->type == AST_IF);
 	assert(root->middle->type == AST_LITERAL);
 	assert(root->left->type == AST_BLOCK);
-	assert(root->left->nodes[0]->type == AST_LITERAL);
+	assert(list_get_as_deref(&root->left->nodes, 0, Ast_Node*)->type == AST_LITERAL);
 	assert(root->right->type == AST_BLOCK);
-	assert(root->right->nodes[0]->type == AST_LITERAL);
+	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->type == AST_LITERAL);
 
 
 	result = PARSER_TEST_CASE("if a == true {b=2;} else {b=3;}");
@@ -38,9 +38,9 @@ int main(void) {
 	assert(root->middle->left->type == AST_IDENT);
 	assert(root->middle->right->type == AST_LITERAL);
 	assert(root->left->type == AST_BLOCK);
-	assert(root->left->nodes[0]->type == AST_ASSIGN);
+	assert(list_get_as(&root->left->nodes, 0, Ast_Node*)->type == AST_ASSIGN);
 	assert(root->right->type == AST_BLOCK);
-	assert(root->right->nodes[0]->type == AST_ASSIGN);
+	assert(list_get_as(&root->left->nodes, 0, Ast_Node*)->type == AST_ASSIGN);
 
 	result = PARSER_TEST_CASE("a == true { function; }}");
 	assert(result.errors.count >= 1);
@@ -132,12 +132,12 @@ int main(void) {
 	assert(root->type == AST_FUNC_DEF);
 	assert(root->left->type == AST_IDENT);
 	assert(root->middle->type == AST_ARG_LIST);
-	assert((*((Ast_Node**)root->middle->nodes))->type == AST_TYPE_DECL);
-	assert((*((Ast_Node**)root->middle->nodes + 1))->type == AST_TYPE_DECL);
-	assert((*((Ast_Node**)root->middle->nodes + 2))->type == AST_TYPE_DECL);
+	assert(list_get_as_deref(&root->middle->nodes, 0, Ast_Node*)->type == AST_TYPE_DECL);
+	assert(list_get_as_deref(&root->middle->nodes, 1, Ast_Node*)->type == AST_TYPE_DECL);
+	assert(list_get_as_deref(&root->middle->nodes, 2, Ast_Node*)->type == AST_TYPE_DECL);
 	assert(root->right->type == AST_BLOCK);
-	assert((*((Ast_Node**)root->right->nodes))->type == AST_FUNC_CALL);
-	assert((*((Ast_Node**)root->right->nodes))->middle->size == 0);
+	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->type == AST_FUNC_CALL);
+	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->middle->nodes.count == 0);
 	assert(root->ret_type->type == AST_FUNC_RET_TYPE);
 
 	result = PARSER_TEST_CASE("write(,,);");

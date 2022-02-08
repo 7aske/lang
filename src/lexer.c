@@ -136,8 +136,6 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 		dest->integer_value = 1;
 	}
 
-	dest->p_type = TOK_P_NONE;
-
 	dest->c0 = col + 1;
 	dest->r0 = row + 1;
 	dest->c1 = dest->c0 + code_size;
@@ -194,12 +192,12 @@ u32 lexer_lex(Lexer* lexer) {
 
 				// @Optimization this can probably be done at a later step
 				// i = 1 because the default type is none
-				for (int i = 1; i < PRIMITIVE_TYPES_LEN; ++i) {
-					Primitive_Type type = primitive_types[i];
-					if (strcmp(string_buffer->data, type.iden) == 0) {
-						token.p_type = type.type;
-					}
-				}
+				// for (int i = 1; i < PRIMITIVE_TYPES_LEN; ++i) {
+				// 	Primitive_Type type = primitive_types[i];
+				// 	if (strcmp(string_buffer->data, type.iden) == 0) {
+				// 		token.p_type = type.type;
+				// 	}
+				// }
 
 				strncpy(token.string_value.data, string_buffer->data,
 						string_buffer->count);
