@@ -38,6 +38,7 @@ typedef enum ast_node_type {
 	AST_IN,
 	AST_ITER,
 
+	AST_WHILE,
 	AST_IF,
 	AST_DEFAULT,
 	AST_TERNARY,

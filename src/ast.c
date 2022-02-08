@@ -5,6 +5,8 @@
 
 inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 	switch (token) {
+		case TOK_WHILE:
+			return AST_WHILE;
 		case TOK_IF:
 			return AST_IF;
 		case TOK_FOR:

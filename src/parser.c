@@ -155,6 +155,8 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 
 	if (IS_CURR_OF_TYPE(lexer_result, TOK_IF)) {
 		ast_result = parse_if_statement(parser, lexer_result);
+	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_WHILE)) {
+		ast_result = parse_while_statement(parser, lexer_result);
 	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_FN)) {
 		ast_result = parse_fn_statement(parser, lexer_result);
 	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_FOR)) {
@@ -171,6 +173,26 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 			NEXT_TOKEN(lexer_result);
 		}
 	}
+
+	return ast_result;
+}
+
+Ast_Result parse_while_statement(Parser* parser, Token** token) {
+	assert((*token)->type == TOK_WHILE);
+	Ast_Result ast_result = parser_create_node(parser, token);
+
+	Ast_Result middle_ast_result = parse_expression(parser, token);
+	ast_result.node->middle = middle_ast_result.node;
+
+	// @Temporary
+	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
+		parser_report_error(parser, *token, "Expected token {");
+		ast_result.error = AST_ERROR;
+		return ast_result;
+	}
+
+	Ast_Result left_ast_result = parse_expression(parser, token);
+	ast_result.node->left = left_ast_result.node;
 
 	return ast_result;
 }

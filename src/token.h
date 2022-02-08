@@ -33,6 +33,7 @@
 // help when iterating over all existing enum values.
 typedef enum token_type {
 	TOK_INVALID = 0,
+	TOK_WHILE,       // if
 	TOK_IF,       // if
 	TOK_ELSE,     // else
 	TOK_FOR,      // for
@@ -122,6 +123,7 @@ typedef struct token {
 // Debug string representation of token_type enum
 static const char* token_repr[] = {
 	STR(TOK_INVALID),
+	STR(TOK_WHILE),    // while
 	STR(TOK_IF),       // if
 	STR(TOK_ELSE),     // else
 	STR(TOK_FOR),      // for
@@ -180,6 +182,7 @@ static const char* token_repr[] = {
 // Code values of all token types.
 static const char* token_value[] = {
 	NULL, // TOK_INVALID
+	"while",
 	"if",
 	"else",
 	"for",

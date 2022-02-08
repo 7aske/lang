@@ -15,7 +15,7 @@
 static char* cmplist[] =
 	{"sete", "setne", "setg", "setl", "setge", "setle"};
 static char* invcmplist[] =
-	{"jne", "je", "jl", "jg", "jle", "jge"};
+	{"jne", "je", "jle", "jge", "jl", "jg"};
 
 typedef struct symbol {
 	char* name;

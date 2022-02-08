@@ -322,36 +322,64 @@ void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 	list_new(&interpreter->symbols, sizeof(Symbol));
 }
 
+s32 interpreter_decode_if(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
+	s32 retreg;
+	s32 l_false, l_end;
+
+	l_false = get_label(interpreter);
+	if (node->right)
+		l_end = get_label(interpreter);
+
+	fprintf(interpreter->output, "\t# if\n");
+	interpreter_decode(interpreter, node->middle, l_false, node);
+	freeall_registers(interpreter);
+
+	fprintf(interpreter->output, "\t# if true\n");
+	retreg = interpreter_decode(interpreter, node->left, l_false, node);
+	freeall_registers(interpreter);
+
+	if (node->right)
+		cg_jump(interpreter, l_end);
+
+	cg_label(interpreter, l_false);
+
+	if (node->right) {
+		fprintf(interpreter->output, "\t# if false\n");
+		retreg = interpreter_decode(interpreter, node->right, l_end, node);
+		freeall_registers(interpreter);
+		cg_label(interpreter, l_end);
+	}
+
+	return retreg;
+}
+
+s32 interpreter_decode_while(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
+	s32 retreg;
+	s32 l_start, l_end;
+
+	l_start = get_label(interpreter);
+	l_end = get_label(interpreter);
+	cg_label(interpreter, l_start);
+
+	fprintf(interpreter->output, "\t# while condition\n");
+	interpreter_decode(interpreter, node->middle, l_end, node);
+	freeall_registers(interpreter);
+
+	fprintf(interpreter->output, "\t# while body\n");
+	retreg = interpreter_decode(interpreter, node->left, -1, node);
+	freeall_registers(interpreter);
+
+	cg_jump(interpreter, l_start);
+	cg_label(interpreter, l_end);
+	return retreg;
+}
+
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
 	s32 retreg;
 	if (node->type == AST_IF) {
-		s32 l_false, l_end;
-
-		l_false = get_label(interpreter);
-		if (node->right)
-			l_end = get_label(interpreter);
-
-		fprintf(interpreter->output, "\t# if\n");
-		interpreter_decode(interpreter, node->middle, l_false, node);
-		freeall_registers(interpreter);
-
-		fprintf(interpreter->output, "\t# if_true\n");
-		retreg = interpreter_decode(interpreter, node->left, l_false, node);
-		freeall_registers(interpreter);
-
-		if (node->right)
-			cg_jump(interpreter, l_end);
-
-		cg_label(interpreter, l_false);
-
-		if (node->right) {
-			fprintf(interpreter->output, "\t# if_false\n");
-			retreg = interpreter_decode(interpreter, node->right, l_end, node);
-			freeall_registers(interpreter);
-			cg_label(interpreter, l_end);
-		}
-
-		return retreg;
+		return interpreter_decode_if(interpreter, node, reg, parent);
+	} else if (node->type == AST_WHILE) {
+		return interpreter_decode_while(interpreter, node, reg, parent);
 	}
 	if (node->type == AST_BLOCK) {
 		for (s32 i = 0; i < node->size; ++i) {
@@ -376,7 +404,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			switch (node->token.type) {
 				case TOK_EQ:
 				case TOK_NE:
-					if (parent!= NULL && parent->type == AST_IF)
+					if (parent != NULL && (parent->type == AST_IF || parent->type == AST_WHILE))
 						return cg_compare_jump(interpreter, node->token.type, leftreg, rightreg, reg);
 					else
 						return cg_compare_set(interpreter, node->token.type, leftreg, rightreg);
@@ -388,7 +416,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				case TOK_GE:
 				case TOK_LT:
 				case TOK_LE:
-					if (parent!= NULL && parent->type == AST_IF)
+					if (parent != NULL && (parent->type == AST_IF || parent->type == AST_WHILE))
 						return cg_compare_jump(interpreter, node->token.type, leftreg, rightreg, reg);
 					else
 						return cg_compare_set(interpreter, node->token.type, leftreg, rightreg);
