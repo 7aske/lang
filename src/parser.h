@@ -45,6 +45,11 @@
 // Utility to push an element to the parser node stack.
 #define PARSER_PUSH(src) stack_push(&parser->node_stack, src)
 
+// Utility to pop and element from the parser node stack.
+#define FUNCTION_POP(dest) stack_pop(&parser->function_stack, dest)
+
+// Utility to push an element to the function node stack.
+#define FUNCTION_PUSH(src) stack_push(&parser->function_stack, src)
 /**
  * Struct representing a parser error.
  *
@@ -75,6 +80,9 @@ typedef struct parser_error_report {
  * @param node_stack Struct for holding the stack of currently parsed/created
  *                   AST nodes. Useful when parsing binary operations and parenthesis
  *                   related AST nodes.
+ * @param function_stack Struct for holding the stack of currently parsing function
+ *                       definitions. Used to set the name of the function that is
+ *                       being returned by the returned by the return statement.
  */
 typedef struct parser {
 	struct {
@@ -84,6 +92,7 @@ typedef struct parser {
 
 	List errors;
 	Stack node_stack;
+	Stack function_stack;
 } Parser;
 
 /**

@@ -44,30 +44,6 @@ static void free_register(Interpreter* interpreter, s32 reg) {
 // Print out the assembly preamble
 void cg_preamble(Interpreter* interpreter) {
 	freeall_registers(interpreter);
-	fputs(
-		"\t.text\n"
-		".LC0:\n"
-		"\t.string\t\"%d\\n\"\n"
-		"printint:\n"
-		"\tpushq\t%rbp\n"
-		"\tmovq\t%rsp, %rbp\n"
-		"\tsubq\t$16, %rsp\n"
-		"\tmovl\t%edi, -4(%rbp)\n"
-		"\tmovl\t-4(%rbp), %eax\n"
-		"\tmovl\t%eax, %esi\n"
-		"\tleaq	.LC0(%rip), %rdi\n"
-		"\tmovl	$0, %eax\n"
-		"\tcall	printf@PLT\n"
-		"\tnop\n"
-		"\tleave\n"
-		"\tret\n",
-		// "\n"
-		// "\t.globl\tmain\n"
-		// "\t.type\tmain, @function\n"
-		// "main:\n"
-		// "\tpushq\t%rbp\n"
-		// "\tmovq	%rsp, %rbp\n",
-		interpreter->output);
 }
 
 // Print out the assembly postamble
@@ -165,6 +141,16 @@ int findglob(Interpreter* interpreter, const char* s) {
 			return (i);
 	}
 	return (-1);
+}
+
+Symbol* findglobsym(Interpreter* interpreter, const char* s) {
+	int i;
+	for (i = 0; i < interpreter->symbols.count; i++) {
+		Symbol* symbol = list_get(&interpreter->symbols, i);
+		if (*s == *symbol->name && strcmp(s, symbol->name) == 0)
+			return symbol;
+	}
+	return NULL;
 }
 
 s32 addglobsym(Interpreter* interpreter, Symbol symbol) {
@@ -390,7 +376,7 @@ s32 interpreter_decode_while(Interpreter* interpreter, Ast_Node* node, s32 reg, 
 	return retreg;
 }
 
-void cg_funcpreamble(Interpreter* interpreter, char* name) {
+void cg_funcpreamble(Interpreter* interpreter, const char* name) {
 	fprintf(interpreter->output, "# func decl\n");
 	fprintf(interpreter->output,
 			"\t.text\n"
@@ -403,8 +389,7 @@ void cg_funcpreamble(Interpreter* interpreter, char* name) {
 
 void cg_funcpostamble(Interpreter* interpreter) {
 	fprintf(interpreter->output, "# func decl end\n");
-	fputs("\tmovl\t$0, %eax\n"
-		  "\tpopq\t%rbp\n"
+	fputs("\tpopq\t%rbp\n"
 		  "\tret\n", interpreter->output);
 }
 
@@ -436,8 +421,12 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	} else if (node->type == AST_WHILE) {
 		return interpreter_decode_while(interpreter, node, reg, parent);
 	} else if (node->type == AST_FUNC_DEF) {
-		cg_funcpreamble(interpreter, node->left->token.string_value.data);
+		name = node->left->token.string_value.data;
+		s32 end_label = get_label(interpreter);
+		addglobsym(interpreter, (Symbol){.name=name, .end_label=end_label});
+		cg_funcpreamble(interpreter, name);
 		interpreter_decode(interpreter, node->right, -1, node);
+		cg_label(interpreter, end_label);
 		cg_funcpostamble(interpreter);
 		return -1;
 	} else if (node->type == AST_BLOCK) {
@@ -461,8 +450,8 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 
 	switch (node->type) {
 		case AST_FUNC_RETURN:
-			name = node->left->token.string_value.data;
-			cg_return(interpreter, leftreg, &(Symbol){.name=name});
+			name = node->middle->left->token.string_value.data;
+			cg_return(interpreter, rightreg, findglobsym(interpreter, name));
 			return -1;
 		case AST_FUNC_CALL:
 			name = node->left->token.string_value.data;

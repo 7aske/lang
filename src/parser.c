@@ -182,11 +182,14 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 Ast_Result parse_return_statement(Parser* parser, Token** token) {
 	Ast_Result result = parser_create_node(parser, token);
 	Ast_Result right_result = parse_expression(parser, token);
+	Ast_Node* function;
+	FUNCTION_POP(&function);
 	if (right_result.error != AST_NO_ERROR) {
 		result.error = right_result.error;
 		return result;
 	}
 	result.node->right = right_result.node;
+	result.node->middle  = function;
 
 	return result;
 }
@@ -284,12 +287,14 @@ Ast_Result parse_fn_statement(Parser* parser, Token** token) {
 		return fn_result;
 	}
 
+	FUNCTION_PUSH(&fn_result.node);
 	Ast_Result fn_body_result = parse_block_node(parser, token);
 	if (fn_body_result.error != AST_NO_ERROR) {
 		fn_result.error = AST_ERROR;
 		return fn_result;
 	}
 	fn_result.node->right = fn_body_result.node;
+	FUNCTION_POP(NULL);
 
 	return fn_result;
 }
@@ -638,6 +643,7 @@ inline void parser_new(Parser* parser, char* code) {
 	parser->code.text = code;
 	list_new(&parser->errors, sizeof(Parser_Error_Report));
 	stack_new(&parser->node_stack, sizeof(Ast_Result));
+	stack_new(&parser->function_stack, sizeof(Ast_Node*));
 }
 
 inline void parser_free(Parser* parser) {

@@ -18,7 +18,7 @@ static char* invcmplist[] =
 	{"jne", "je", "jle", "jge", "jl", "jg"};
 
 typedef struct symbol {
-	char* name;
+	const char* name;
 	s32   end_label;
 } Symbol;
 
