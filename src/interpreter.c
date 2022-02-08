@@ -142,8 +142,8 @@ s32 cg_div(Interpreter* interpreter, s32 r1, s32 r2) {
 }
 
 // Call printint() with the given register
-void cg_print_int(Interpreter* interpreter, s32 reg) {
-	if (reg == -1) return;
+s32 cg_print_int(Interpreter* interpreter, s32 reg) {
+	if (reg == -1) return -1;
 	fprintf(interpreter->output, "\t# cg_print_int\n");
 	fprintf(interpreter->output, "\tmovq\t%s, %%rdi\n",
 			interpreter->registers[reg]);
@@ -152,6 +152,7 @@ void cg_print_int(Interpreter* interpreter, s32 reg) {
 	if (!interpreter->freereg[reg]){
 		free_register(interpreter, reg);
 	}
+	return reg;
 }
 
 // Determine if the symbol s is in the global symbol table.
@@ -298,11 +299,9 @@ int cg_compare_jump(Interpreter* interpreter, Token_Type type, s32 r1, s32 r2, s
 
 void interpreter_run(Interpreter* interpreter) {
 	cg_preamble(interpreter);
-	int reg;
 	list_foreach(&interpreter->nodes, Ast_Node**, {
-		reg = interpreter_decode(interpreter, *it, -1, NULL);
+		interpreter_decode(interpreter, *it, -1, NULL);
 	})
-	cg_print_int(interpreter, reg);
 	cg_postamble(interpreter);
 }
 
@@ -380,12 +379,14 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		return interpreter_decode_if(interpreter, node, reg, parent);
 	} else if (node->type == AST_WHILE) {
 		return interpreter_decode_while(interpreter, node, reg, parent);
-	}
-	if (node->type == AST_BLOCK) {
+	} else if (node->type == AST_BLOCK) {
 		for (s32 i = 0; i < node->size; ++i) {
-			retreg = interpreter_decode(interpreter, *(node->nodes + i), -1, node);
+			retreg = interpreter_decode(interpreter, *(node->nodes + i), retreg, node);
 		}
 		return retreg;
+	} else if (node->type == AST_FUNC_CALL && strcmp(node->left->token.string_value.data, "print") == 0) {
+		// @Temporary debug statement
+		return cg_print_int(interpreter, reg);
 	}
 	s32 leftreg, rightreg;
 	const char* name;

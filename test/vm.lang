@@ -3,7 +3,7 @@ b:int = 6 + 5;
 
 a = a * (b + 1);
 
-while a > 0 {
+while a > 10 {
 	a = a - 1;
+	print();
 }
-a
