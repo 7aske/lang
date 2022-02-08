@@ -447,7 +447,9 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		return -1;
 	} else if (node->type == AST_BLOCK) {
 		for (s32 i = 0; i < node->nodes.count; ++i) {
-			retreg = interpreter_decode(interpreter, list_get_as(&node->nodes, i, Ast_Node*), retreg,
+			retreg = interpreter_decode(interpreter,
+										*list_get_as(&node->nodes, i, Ast_Node**),
+										retreg,
 										node);
 		}
 		return retreg;
@@ -474,7 +476,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			if (node->middle->nodes.count != 0) {
 				// @ToDo parse argument list
 				leftreg = interpreter_decode(interpreter,
-											 list_get_as(&node->middle->nodes, 0, Ast_Node*),
+											 *list_get_as(&node->middle->nodes, 0, Ast_Node**),
 											 -1,
 											 parent);
 			} else {
