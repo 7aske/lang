@@ -51,7 +51,8 @@ typedef enum ast_node_type {
 	AST_FUNC_DEF,
 	AST_FUNC_CALL,
 	AST_FUNC_BODY,
-	AST_FUNC_RET_TYPE
+	AST_FUNC_RET_TYPE,
+	AST_FUNC_RETURN
 
 } Ast_Node_Type;
 

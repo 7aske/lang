@@ -19,6 +19,7 @@ static char* invcmplist[] =
 
 typedef struct symbol {
 	char* name;
+	s32   end_label;
 } Symbol;
 
 typedef struct interpreter {
@@ -28,6 +29,7 @@ typedef struct interpreter {
 	int   freereg[VM_REG_SIZE];
 	char* registers[VM_REG_SIZE];
 	char* b_registers[VM_REG_SIZE];
+	char* d_registers[VM_REG_SIZE];
 	List  symbols;
 	s32   label;
 } Interpreter;

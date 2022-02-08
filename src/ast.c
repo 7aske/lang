@@ -62,6 +62,8 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 			return AST_IN;
 		case TOK_DDOT:
 			return AST_ITER;
+		case TOK_RETURN:
+			return AST_FUNC_RETURN;
 		default:
 			return AST_NODE;
 	}

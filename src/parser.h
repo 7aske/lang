@@ -362,5 +362,14 @@ Ast_Result parse_iter_node(Parser* parser, Token** token);
  */
 Ast_Result parse_while_statement(Parser* parser, Token** token);
 
+/**
+ * Function for parsing return statement.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed return statement.
+ */
+Ast_Result parse_return_statement(Parser* parser, Token** token);
+
 #endif //LANG_PARSER_H
 

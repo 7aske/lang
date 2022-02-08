@@ -60,13 +60,13 @@ void cg_preamble(Interpreter* interpreter) {
 		"\tcall	printf@PLT\n"
 		"\tnop\n"
 		"\tleave\n"
-		"\tret\n"
-		"\n"
-		"\t.globl\tmain\n"
-		"\t.type\tmain, @function\n"
-		"main:\n"
-		"\tpushq\t%rbp\n"
-		"\tmovq	%rsp, %rbp\n",
+		"\tret\n",
+		// "\n"
+		// "\t.globl\tmain\n"
+		// "\t.type\tmain, @function\n"
+		// "main:\n"
+		// "\tpushq\t%rbp\n"
+		// "\tmovq	%rsp, %rbp\n",
 		interpreter->output);
 }
 
@@ -149,7 +149,7 @@ s32 cg_print_int(Interpreter* interpreter, s32 reg) {
 			interpreter->registers[reg]);
 	fprintf(interpreter->output, "\tcall\tprintint\n");
 	// @Temporary
-	if (!interpreter->freereg[reg]){
+	if (!interpreter->freereg[reg]) {
 		free_register(interpreter, reg);
 	}
 	return reg;
@@ -157,7 +157,7 @@ s32 cg_print_int(Interpreter* interpreter, s32 reg) {
 
 // Determine if the symbol s is in the global symbol table.
 // Return its slot position or -1 if not found.
-int findglob(Interpreter* interpreter, const char *s) {
+int findglob(Interpreter* interpreter, const char* s) {
 	int i;
 	for (i = 0; i < interpreter->symbols.count; i++) {
 		Symbol* symbol = list_get(&interpreter->symbols, i);
@@ -167,26 +167,35 @@ int findglob(Interpreter* interpreter, const char *s) {
 	return (-1);
 }
 
-// Add a global symbol to the symbol table.
-// Return the slot number in the symbol table
-s32 addglob(Interpreter* interpreter, const char* name) {
+s32 addglobsym(Interpreter* interpreter, Symbol symbol) {
 	s32 y;
 
 	// If this is already in the symbol table, return the existing slot
-	if ((y = findglob(interpreter, name)) != -1)
-		return (y);
+	if ((y = findglob(interpreter, symbol.name)) != -1)
+		return y;
 
 	// Otherwise get a new slot, fill it in and
 	// return the slot number
-	Symbol symbol = {.name = strdup(name)};
 	list_push(&interpreter->symbols, &symbol);
 	return interpreter->symbols.count - 1;
 }
 
+// Add a global symbol to the symbol table.
+// Return the slot number in the symbol table
+s32 addglob(Interpreter* interpreter, const char* name) {
+	Symbol symbol = {.name = strdup(name)};
+	return addglobsym(interpreter, symbol);
+}
+
 // Generate a global symbol
 void cg_globsym(Interpreter* interpreter, const char* name) {
+	// @ToDo get variable size
+	s8 size = 8;
+	// size = cgprimsize(Gsym[id].type);
+
 	fprintf(interpreter->output, "\t# cg_globsym\n");
-	fprintf(interpreter->output, "\t.comm\t%s,8,8\n", name);
+	fprintf(interpreter->output, "\t.comm\t%s,%d,%d\n",
+			name, size, size);
 }
 
 // Store a register's value into a variable
@@ -213,7 +222,7 @@ s32 cg_loadglob(Interpreter* interpreter, const char* name) {
 }
 
 // Compare two registers.
-static s32 cg_compare(Interpreter* interpreter, s32 r1, s32 r2, char *op) {
+static s32 cg_compare(Interpreter* interpreter, s32 r1, s32 r2, char* op) {
 	fprintf(interpreter->output, "\t# cg_compare %s\n", op);
 	fprintf(interpreter->output, "\tcmpq\t%s, %s\n",
 			interpreter->registers[r2],
@@ -308,14 +317,22 @@ void interpreter_run(Interpreter* interpreter) {
 void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 	memcpy(&interpreter->nodes, nodes, sizeof(List));
 	stack_new(&interpreter->instructions, sizeof(Instruction));
+
 	interpreter->registers[0] = "%r8";
 	interpreter->registers[1] = "%r9";
 	interpreter->registers[2] = "%r10";
 	interpreter->registers[3] = "%r11";
+
 	interpreter->b_registers[0] = "%r8b";
 	interpreter->b_registers[1] = "%r9b";
 	interpreter->b_registers[2] = "%r10b";
 	interpreter->b_registers[3] = "%r11b";
+
+	interpreter->d_registers[0] = "%r8d";
+	interpreter->d_registers[1] = "%r9d";
+	interpreter->d_registers[2] = "%r10d";
+	interpreter->d_registers[3] = "%r11d";
+
 	interpreter->output = output;
 	interpreter->label = 0;
 	list_new(&interpreter->symbols, sizeof(Symbol));
@@ -373,42 +390,106 @@ s32 interpreter_decode_while(Interpreter* interpreter, Ast_Node* node, s32 reg, 
 	return retreg;
 }
 
+void cg_funcpreamble(Interpreter* interpreter, char* name) {
+	fprintf(interpreter->output, "# func decl\n");
+	fprintf(interpreter->output,
+			"\t.text\n"
+			"\t.globl\t%s\n"
+			"\t.type\t%s, @function\n"
+			"%s:\n"
+			"\tpushq\t%%rbp\n"
+			"\tmovq\t%%rsp, %%rbp\n", name, name, name);
+}
+
+void cg_funcpostamble(Interpreter* interpreter) {
+	fprintf(interpreter->output, "# func decl end\n");
+	fputs("\tmovl\t$0, %eax\n"
+		  "\tpopq\t%rbp\n"
+		  "\tret\n", interpreter->output);
+}
+
+s32 cg_funccall(Interpreter* interpreter, s32 reg, const char* name) {
+	s32 retreg = alloc_register(interpreter);
+	if (reg != -1)
+		fprintf(interpreter->output, "\tmovq\t%s, %%rdi\n",
+				interpreter->registers[reg]);
+	fprintf(interpreter->output, "\tcall\t%s\n",
+			name);
+	fprintf(interpreter->output, "\tmovq\t%%rax, %s\n",
+			interpreter->registers[retreg]);
+	free_register(interpreter, retreg);
+	return retreg;
+}
+
+void cg_return(Interpreter* interpreter, s32 reg, Symbol* symbol) {
+	// @ToDo type size of return
+	fprintf(interpreter->output, "\tmovq\t%s, %%rax\n",
+			interpreter->registers[reg]);
+	cg_jump(interpreter, symbol->end_label);
+}
+
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
-	s32 retreg;
+	s32 leftreg, rightreg, retreg;
+	const char* name;
 	if (node->type == AST_IF) {
 		return interpreter_decode_if(interpreter, node, reg, parent);
 	} else if (node->type == AST_WHILE) {
 		return interpreter_decode_while(interpreter, node, reg, parent);
+	} else if (node->type == AST_FUNC_DEF) {
+		cg_funcpreamble(interpreter, node->left->token.string_value.data);
+		interpreter_decode(interpreter, node->right, -1, node);
+		cg_funcpostamble(interpreter);
+		return -1;
 	} else if (node->type == AST_BLOCK) {
 		for (s32 i = 0; i < node->size; ++i) {
-			retreg = interpreter_decode(interpreter, *(node->nodes + i), retreg, node);
+			retreg = interpreter_decode(interpreter, *(node->nodes + i), retreg,
+										node);
 		}
 		return retreg;
-	} else if (node->type == AST_FUNC_CALL && strcmp(node->left->token.string_value.data, "print") == 0) {
-		// @Temporary debug statement
-		return cg_print_int(interpreter, reg);
 	}
-	s32 leftreg, rightreg;
-	const char* name;
+
 	if (node->right) {
 		rightreg = interpreter_decode(interpreter, node->right, -1, node);
 	}
+
 	if (node->left) {
 		// @Temporary @Hack to persist the register returned by the right tree
 		// parsing of the assignment node + type decl
-		if (node->type == AST_TYPE_DECL && rightreg == -1)  rightreg = reg;
+		if (node->type == AST_TYPE_DECL && rightreg == -1) rightreg = reg;
 		leftreg = interpreter_decode(interpreter, node->left, rightreg, node);
 	}
 
 	switch (node->type) {
+		case AST_FUNC_RETURN:
+			name = node->left->token.string_value.data;
+			cg_return(interpreter, leftreg, &(Symbol){.name=name});
+			return -1;
+		case AST_FUNC_CALL:
+			name = node->left->token.string_value.data;
+			if (node->middle->size != 0) {
+				// @ToDo parse argument list
+				leftreg = interpreter_decode(interpreter,
+											 node->middle->nodes[0],
+											 -1,
+											 parent);
+			} else {
+				leftreg = -1;
+			}
+			return cg_funccall(interpreter, leftreg, name);
+		case AST_FUNC_DEF:
+			assert(false);
+			break;
 		case AST_EQUALITY:
 			switch (node->token.type) {
 				case TOK_EQ:
 				case TOK_NE:
-					if (parent != NULL && (parent->type == AST_IF || parent->type == AST_WHILE))
-						return cg_compare_jump(interpreter, node->token.type, leftreg, rightreg, reg);
+					if (parent != NULL &&
+						(parent->type == AST_IF || parent->type == AST_WHILE))
+						return cg_compare_jump(interpreter, node->token.type,
+											   leftreg, rightreg, reg);
 					else
-						return cg_compare_set(interpreter, node->token.type, leftreg, rightreg);
+						return cg_compare_set(interpreter, node->token.type,
+											  leftreg, rightreg);
 			}
 			break;
 		case AST_RELATIONAL:
@@ -417,10 +498,13 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				case TOK_GE:
 				case TOK_LT:
 				case TOK_LE:
-					if (parent != NULL && (parent->type == AST_IF || parent->type == AST_WHILE))
-						return cg_compare_jump(interpreter, node->token.type, leftreg, rightreg, reg);
+					if (parent != NULL &&
+						(parent->type == AST_IF || parent->type == AST_WHILE))
+						return cg_compare_jump(interpreter, node->token.type,
+											   leftreg, rightreg, reg);
 					else
-						return cg_compare_set(interpreter, node->token.type, leftreg, rightreg);
+						return cg_compare_set(interpreter, node->token.type,
+											  leftreg, rightreg);
 			}
 			break;
 		case AST_ARITHMETIC:

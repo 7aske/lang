@@ -161,6 +161,8 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 		ast_result = parse_fn_statement(parser, lexer_result);
 	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_FOR)) {
 		ast_result = parse_for_statement(parser, lexer_result);
+	} else if (IS_CURR_OF_TYPE(lexer_result, TOK_RETURN)) {
+		ast_result = parse_return_statement(parser, lexer_result);
 	} else {
 		while (!IS_CURR_OF_TYPE(lexer_result, TOK_SCOL) &&
 			   !IS_CURR_OF_TYPE(lexer_result, TOK_INVALID)) {
@@ -175,6 +177,18 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 	}
 
 	return ast_result;
+}
+
+Ast_Result parse_return_statement(Parser* parser, Token** token) {
+	Ast_Result result = parser_create_node(parser, token);
+	Ast_Result right_result = parse_expression(parser, token);
+	if (right_result.error != AST_NO_ERROR) {
+		result.error = right_result.error;
+		return result;
+	}
+	result.node->right = right_result.node;
+
+	return result;
 }
 
 Ast_Result parse_while_statement(Parser* parser, Token** token) {

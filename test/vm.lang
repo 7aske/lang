@@ -1,9 +1,15 @@
-a:int = 5;
-b:int = 6 + 5;
+fn _print() {
+	printint();
+}
 
-a = a * (b + 1);
+fn main() {
+	a:int = 5;
+	b:int = 6 + 5;
 
-while a > 10 {
-	a = a - 1;
-	print();
+	a = a * (b + 1);
+
+	while a > 10 {
+		a = a - 1;
+		_print(a);
+	}
 }
