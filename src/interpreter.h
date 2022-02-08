@@ -12,6 +12,11 @@
 
 #define VM_REG_SIZE 4
 
+static char* cmplist[] =
+	{"sete", "setne", "setg", "setl", "setge", "setle"};
+static char* invcmplist[] =
+	{"jne", "je", "jl", "jg", "jle", "jge"};
+
 typedef struct symbol {
 	char* name;
 } Symbol;
@@ -24,13 +29,14 @@ typedef struct interpreter {
 	char* registers[VM_REG_SIZE];
 	char* b_registers[VM_REG_SIZE];
 	List  symbols;
+	s32   label;
 } Interpreter;
 
 void interpreter_run(Interpreter* interpreter);
 
 void interpreter_new(Interpreter* interpreter, List* nodes, FILE* file);
 
-s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg);
+s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent);
 
 void interpreter_push(Interpreter* interpreter, Instruction instruction);
 

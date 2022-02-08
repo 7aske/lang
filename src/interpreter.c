@@ -34,8 +34,8 @@ static s32 alloc_register(Interpreter* interpreter) {
 // Check to see if it's not already there.
 static void free_register(Interpreter* interpreter, s32 reg) {
 	if (interpreter->freereg[reg] != 0) {
-		assert(false);
 		fprintf(stderr, "Error trying to free register %d\n", reg);
+		assert(false);
 		exit(1);
 	}
 	interpreter->freereg[reg] = 1;
@@ -72,6 +72,7 @@ void cg_preamble(Interpreter* interpreter) {
 
 // Print out the assembly postamble
 void cg_postamble(Interpreter* interpreter) {
+	fprintf(interpreter->output, "\t# cg_postamble\n");
 	fputs("\tmovl	$0, %eax\n"
 		  "\tpopq	%rbp\n"
 		  "\tret\n",
@@ -107,7 +108,8 @@ s32 cg_add(Interpreter* interpreter, s32 r1, s32 r2) {
 // return the number of the register with the result
 s32 cg_sub(Interpreter* interpreter, s32 r1, s32 r2) {
 	fprintf(interpreter->output, "\t# cg_sub\n");
-	fprintf(interpreter->output, "\tsubq\t%s, %s\n", interpreter->registers[r2],
+	fprintf(interpreter->output, "\tsubq\t%s, %s\n",
+			interpreter->registers[r2],
 			interpreter->registers[r1]);
 	free_register(interpreter, r2);
 	return (r1);
@@ -118,7 +120,8 @@ s32 cg_sub(Interpreter* interpreter, s32 r1, s32 r2) {
 s32 cg_mul(Interpreter* interpreter, s32 r1, s32 r2) {
 	fprintf(interpreter->output, "\t# cg_mul\n");
 	fprintf(interpreter->output, "\timulq\t%s, %s\n",
-			interpreter->registers[r1], interpreter->registers[r2]);
+			interpreter->registers[r1],
+			interpreter->registers[r2]);
 	free_register(interpreter, r1);
 	return (r2);
 }
@@ -130,7 +133,8 @@ s32 cg_div(Interpreter* interpreter, s32 r1, s32 r2) {
 	fprintf(interpreter->output, "\tmovq\t%s,%%rax\n",
 			interpreter->registers[r1]);
 	fprintf(interpreter->output, "\tcqo\n");
-	fprintf(interpreter->output, "\tidivq\t%s\n", interpreter->registers[r2]);
+	fprintf(interpreter->output, "\tidivq\t%s\n",
+			interpreter->registers[r2]);
 	fprintf(interpreter->output, "\tmovq\t%%rax,%s\n",
 			interpreter->registers[r1]);
 	free_register(interpreter, r2);
@@ -245,11 +249,58 @@ s32 cg_greaterequal(Interpreter* interpreter, s32 r1, s32 r2) {
 	return (cg_compare(interpreter, r1, r2, "setge"));
 }
 
+s32 get_label(Interpreter* interpreter) {
+	return interpreter->label++;
+}
+
+// Generate a label
+void cg_label(Interpreter* interpreter, s32 label) {
+	fprintf(interpreter->output, "\t# cg_label L%ld\n", label);
+	fprintf(interpreter->output, "L%ld:\n", label);
+}
+
+// Generate a jump to a label
+void cg_jump(Interpreter* interpreter, s32 label) {
+	fprintf(interpreter->output, "\t# cg_jump L%ld\n", label);
+	fprintf(interpreter->output, "\tjmp\tL%ld\n", label);
+}
+
+// Compare two registers and set if true.
+s32 cg_compare_set(Interpreter* interpreter, Token_Type type, s32 r1, s32 r2) {
+	s32 op = type - TOK_EQ;
+	fprintf(interpreter->output, "\t# cg_compare_set\n");
+	fprintf(interpreter->output, "\tcmpq\t%s, %s\n",
+			interpreter->registers[r2],
+			interpreter->registers[r1]);
+	fprintf(interpreter->output, "\t%s\t%s\n",
+			cmplist[op],
+			interpreter->b_registers[r2]);
+	fprintf(interpreter->output, "\tmovzbq\t%s, %s\n",
+			interpreter->b_registers[r2],
+			interpreter->registers[r2]);
+	free_register(interpreter, r1);
+	return (r2);
+}
+
+// Compare two registers and jump if false.
+int cg_compare_jump(Interpreter* interpreter, Token_Type type, s32 r1, s32 r2, s32 label) {
+	s32 op = type - TOK_EQ;
+	fprintf(interpreter->output, "\t# cg_compare_jump\n");
+	fprintf(interpreter->output, "\tcmpq\t%s, %s\n",
+			interpreter->registers[r2],
+			interpreter->registers[r1]);
+	fprintf(interpreter->output, "\t%s\tL%ld\n",
+			invcmplist[op],
+			label);
+	freeall_registers(interpreter);
+	return (-1);
+}
+
 void interpreter_run(Interpreter* interpreter) {
 	cg_preamble(interpreter);
 	int reg;
 	list_foreach(&interpreter->nodes, Ast_Node**, {
-		reg = interpreter_decode(interpreter, *it, -1);
+		reg = interpreter_decode(interpreter, *it, -1, NULL);
 	})
 	cg_print_int(interpreter, reg);
 	cg_postamble(interpreter);
@@ -267,47 +318,80 @@ void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 	interpreter->b_registers[2] = "%r10b";
 	interpreter->b_registers[3] = "%r11b";
 	interpreter->output = output;
+	interpreter->label = 0;
 	list_new(&interpreter->symbols, sizeof(Symbol));
 }
 
-s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg) {
+s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
+	s32 retreg;
+	if (node->type == AST_IF) {
+		s32 l_false, l_end;
+
+		l_false = get_label(interpreter);
+		if (node->right)
+			l_end = get_label(interpreter);
+
+		fprintf(interpreter->output, "\t# if\n");
+		interpreter_decode(interpreter, node->middle, l_false, node);
+		freeall_registers(interpreter);
+
+		fprintf(interpreter->output, "\t# if_true\n");
+		retreg = interpreter_decode(interpreter, node->left, l_false, node);
+		freeall_registers(interpreter);
+
+		if (node->right)
+			cg_jump(interpreter, l_end);
+
+		cg_label(interpreter, l_false);
+
+		if (node->right) {
+			fprintf(interpreter->output, "\t# if_false\n");
+			retreg = interpreter_decode(interpreter, node->right, l_end, node);
+			freeall_registers(interpreter);
+			cg_label(interpreter, l_end);
+		}
+
+		return retreg;
+	}
 	if (node->type == AST_BLOCK) {
 		for (s32 i = 0; i < node->size; ++i) {
-			interpreter_decode(interpreter, *(node->nodes + i), -1);
+			retreg = interpreter_decode(interpreter, *(node->nodes + i), -1, node);
 		}
-		return -1;
+		return retreg;
 	}
 	s32 leftreg, rightreg;
 	const char* name;
 	if (node->right) {
-		rightreg = interpreter_decode(interpreter, node->right, -1);
+		rightreg = interpreter_decode(interpreter, node->right, -1, node);
 	}
 	if (node->left) {
 		// @Temporary @Hack to persist the register returned by the right tree
 		// parsing of the assignment node + type decl
 		if (node->type == AST_TYPE_DECL && rightreg == -1)  rightreg = reg;
-		leftreg = interpreter_decode(interpreter, node->left, rightreg);
+		leftreg = interpreter_decode(interpreter, node->left, rightreg, node);
 	}
 
 	switch (node->type) {
 		case AST_EQUALITY:
 			switch (node->token.type) {
 				case TOK_EQ:
-					return cg_equal(interpreter, leftreg, rightreg);
 				case TOK_NE:
-					return cg_notequal(interpreter, leftreg, rightreg);
+					if (parent!= NULL && parent->type == AST_IF)
+						return cg_compare_jump(interpreter, node->token.type, leftreg, rightreg, reg);
+					else
+						return cg_compare_set(interpreter, node->token.type, leftreg, rightreg);
 			}
 			break;
 		case AST_RELATIONAL:
 			switch (node->token.type) {
 				case TOK_GT:
-					return cg_greaterthan(interpreter, leftreg, rightreg);
 				case TOK_GE:
-					return cg_greaterequal(interpreter, leftreg, rightreg);
 				case TOK_LT:
-					return cg_lessthan(interpreter, leftreg, rightreg);
 				case TOK_LE:
-					return cg_lessequal(interpreter, leftreg, rightreg);
+					if (parent!= NULL && parent->type == AST_IF)
+						return cg_compare_jump(interpreter, node->token.type, leftreg, rightreg, reg);
+					else
+						return cg_compare_set(interpreter, node->token.type, leftreg, rightreg);
 			}
 			break;
 		case AST_ARITHMETIC:
