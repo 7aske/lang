@@ -88,7 +88,7 @@ Ast_Result parse_binary_operation_node(Parser* parser, Token** token) {
 		   IS_CURR_OF_TYPE(token, TOK_EQ) ||
 		   IS_CURR_OF_TYPE(token, TOK_ADD) ||
 		   IS_CURR_OF_TYPE(token, TOK_SUB) ||
-		   IS_CURR_OF_TYPE(token, TOK_MUL) ||
+		   IS_CURR_OF_TYPE(token, TOK_STAR) ||
 		   IS_CURR_OF_TYPE(token, TOK_DIV) ||
 		   IS_CURR_OF_TYPE(token, TOK_MOD)
 	);
@@ -189,7 +189,7 @@ Ast_Result parse_return_statement(Parser* parser, Token** token) {
 		return result;
 	}
 	result.node->right = right_result.node;
-	result.node->middle  = function;
+	result.node->middle = function;
 
 	return result;
 }
@@ -311,6 +311,24 @@ Ast_Result parse_ret_type_node(Parser* parser, Token** token) {
 	return result;
 }
 
+inline const Type* resolve_pointer_type(Ast_Node* node) {
+	const Type* type = NULL;
+	if (node->node_type == AST_IDENT) {
+		type = resolve_primitive_type(node->token.string_value.data);
+		if (type)
+			memcpy(&node->type, type, sizeof(Type));
+		else
+			fprintf(stderr, "Unresolved type for %s\n", node->token.string_value.data);
+	} else if (node->node_type == AST_DEREF || node->node_type == AST_ADDR) {
+		Type new_type;
+		type = resolve_pointer_type(node->right);
+		new_type = *type;
+		new_type.flags |= TYPE_POINTER;
+		memcpy(&node->type, &new_type, sizeof(Type));
+	}
+	return type;
+}
+
 Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	Ast_Result type_decl_result;
 	Ast_Result iden_result = parser_create_node(parser, token);
@@ -328,8 +346,13 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 
 	type_decl_result = parser_create_node(parser, token);
 
-	Ast_Result type_result = parser_create_node(parser, token);
-	if (type_result.node->node_type != AST_IDENT) {
+	Ast_Result type_result = parse_prefix(parser, token);
+
+	resolve_pointer_type(type_result.node);
+
+	if (type_result.node->node_type != AST_IDENT
+		&& type_result.node->node_type != AST_DEREF
+		&& type_result.node->node_type != AST_ADDR) {
 		parser_report_error(parser, *token, "Token should be of type IDENT");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
@@ -337,21 +360,6 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 
 	type_decl_result.node->left = iden_result.node;
 	type_decl_result.node->right = type_result.node;
-
-	const Type* possible_primitive_type =
-		resolve_primitive_type(type_result.node->token.string_value.data);
-	if (possible_primitive_type != NULL) {
-		memcpy(&type_decl_result.node->left->type,
-			   possible_primitive_type,
-			   sizeof(Type));
-	} else {
-		// @ToDo
-		assert(false);
-	}
-
-	// @ToDo
-	// Set primitive node_type
-	// type_decl_result.node->left->token.p_type = type_decl_result.node->right->token.p_type;
 
 	PARSER_PUSH(&type_decl_result);
 
@@ -406,6 +414,27 @@ Ast_Result parse_block_node(Parser* parser, Token** token) {
 	return ast_result;
 }
 
+Ast_Result parse_prefix(Parser* parser, Token** token) {
+	Token* curr_tok = *token;
+	Ast_Result ast_result = parser_create_node(parser, token);
+	if (curr_tok->type == TOK_STAR) {
+		ast_result.node->node_type = AST_DEREF;
+	} else if (curr_tok->type == TOK_AMP) {
+		ast_result.node->node_type = AST_ADDR;
+	} else {
+		return ast_result;
+	}
+
+	Ast_Result ast_right_result = parser_create_node(parser, token);
+	if (ast_right_result.error != AST_NO_ERROR) {
+		ast_result.error = AST_ERROR;
+		return ast_result;
+	}
+	ast_result.node->right = ast_right_result.node;
+
+	return ast_result;
+}
+
 Ast_Result parse_expression(Parser* parser, Token** token) {
 	Ast_Result ast_result = {.error = AST_NO_ERROR, 0};
 
@@ -435,9 +464,11 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		new.node = fix_precedence(new.node);
 		PARSER_PUSH(&new);
 		return new;
+	} else if (IS_CURR_OF_TYPE(token, TOK_STAR)
+			   || IS_CURR_OF_TYPE(token, TOK_AMP)) {
+		ast_result = parse_prefix(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
-			   && IS_PEEK_OF_TYPE(token, TOK_COL)
-			   && IS_AT_OF_TYPE(token, 2, TOK_IDEN)) {
+			   && IS_PEEK_OF_TYPE(token, TOK_COL)) {
 		ast_result = parse_type_decl_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
 			   && IS_PEEK_OF_TYPE(token, TOK_IDEN)) {
@@ -458,7 +489,8 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		parser_create_node(parser, token);
 		ast_result = parse_function_call(parser, token);
 	} else if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
-		ast_result = parser_create_node(parser, token);
+		ast_result = parse_prefix(parser, token);
+		// ast_result = parser_create_node(parser, token);
 	}
 
 	// SECOND STEP
@@ -483,7 +515,7 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 			   IS_CURR_OF_TYPE(token, TOK_LE) ||
 			   IS_CURR_OF_TYPE(token, TOK_ADD) ||
 			   IS_CURR_OF_TYPE(token, TOK_SUB) ||
-			   IS_CURR_OF_TYPE(token, TOK_MUL) ||
+			   IS_CURR_OF_TYPE(token, TOK_STAR) ||
 			   IS_CURR_OF_TYPE(token, TOK_DIV) ||
 			   IS_CURR_OF_TYPE(token, TOK_MOD)) {
 		// All of these are for now parsed as a generic binary operation.
@@ -601,11 +633,13 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	result.node->left = left_ast_result.node;
 	result.node->right = right_ast_result.node;
 
-	if (result.node->left != NULL && result.node->left->node_type == AST_IDENT)  {
+	if (result.node->left != NULL &&
+		result.node->left->node_type == AST_IDENT) {
 		result.node->left->node_type = AST_LVIDENT;
 	}
 
-	if (result.node->left != NULL && result.node->left->node_type == AST_TYPE_DECL)  {
+	if (result.node->left != NULL &&
+		result.node->left->node_type == AST_TYPE_DECL) {
 		result.node->left->left->node_type = AST_LVIDENT;
 	}
 

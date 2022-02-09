@@ -521,7 +521,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 					return cg_sub(interpreter, leftreg, rightreg);
 				case TOK_DIV:
 					return cg_div(interpreter, leftreg, rightreg);
-				case TOK_MUL:
+				case TOK_STAR:
 					return cg_mul(interpreter, leftreg, rightreg);
 			}
 			break;

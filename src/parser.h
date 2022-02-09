@@ -380,5 +380,15 @@ Ast_Result parse_while_statement(Parser* parser, Token** token);
  */
 Ast_Result parse_return_statement(Parser* parser, Token** token);
 
+/**
+ * Function for parsing prefixed identifier nodes. Prefixes are used
+ * for addr, deref, minus and pre dec/inc oprations.
+ *
+ * @param parser this
+ * @param token Pointer to the list lexer of tokens.
+ * @return Ast_Result of parsed prefix node.
+ */
+Ast_Result parse_prefix(Parser* parser, Token** token);
+
 #endif //LANG_PARSER_H
 

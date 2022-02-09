@@ -31,7 +31,7 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 		case TOK_ADD:
 		case TOK_SUB:
 		case TOK_DIV:
-		case TOK_MUL:
+		case TOK_STAR:
 		case TOK_MOD:
 			return AST_ARITHMETIC;
 		case TOK_AND:
@@ -96,7 +96,7 @@ Ast_Node* ast_node_new(Token* token) {
 		if (token->type == TOK_ADD ||
 			token->type == TOK_SUB) {
 			ast_node->precedence = AST_ADD_SUB_PRECEDENCE;
-		} else if (token->type == TOK_MUL ||
+		} else if (token->type == TOK_STAR ||
 				   token->type == TOK_DIV ||
 				   token->type == TOK_MOD) {
 			ast_node->precedence = AST_MUL_DIV_MOD_PRECEDENCE;

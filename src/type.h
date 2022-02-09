@@ -26,6 +26,7 @@ typedef struct type {
 	char* name;
 	u32 size;
 	u32 flags;
+	u32 ptr_size;
 } Type;
 
 

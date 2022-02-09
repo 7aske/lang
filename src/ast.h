@@ -31,6 +31,8 @@ typedef enum ast_node_type {
 	AST_POSTINC,
 	AST_PREDEC,
 	AST_POSTDEC,
+	AST_ADDR,
+	AST_DEREF,
 
 	AST_FOR,
 	AST_BREAK,

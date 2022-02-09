@@ -59,9 +59,12 @@ typedef enum token_type {
 	TOK_ADD,      // +
 	TOK_SUB,      // -
 	TOK_DIV,      // /
-	TOK_MUL,      // *
+	TOK_STAR,     // *
 	TOK_MOD,      // %
+	TOK_AMP,      // &
 	TOK_AND,      // &&
+	TOK_CARET,    // ^
+	TOK_PIPE,     // |
 	TOK_OR,       // ||
 	TOK_NOT,      // !
 	TOK_EQ,       // ==
@@ -152,9 +155,12 @@ static const char* token_repr[] = {
 	STR(TOK_ADD),      // +
 	STR(TOK_SUB),      // -
 	STR(TOK_DIV),      // /
-	STR(TOK_MUL),      // *
+	STR(TOK_STAR),      // *
 	STR(TOK_MOD),      // %
+	STR(TOK_AMP),      // &
 	STR(TOK_AND),      // &&
+	STR(TOK_CARET),    // ^
+	STR(TOK_PIPE),     // |
 	STR(TOK_OR),       // ||
 	STR(TOK_NOT),      // !
 	STR(TOK_EQ),       // ==
@@ -213,7 +219,10 @@ static const char* token_value[] = {
 	"/",
 	"*",
 	"%",
+	"&",
 	"&&",
+	"^",
+	"|",
 	"||",
 	"!",
 	"==",

@@ -30,7 +30,7 @@ Token_Type resolve_operator(const char* ptr) {
 		if (*(ptr + 1) == '&') {
 			return TOK_AND;
 		} else {
-			return TOK_INVALID;
+			return TOK_AMP;
 		}
 	}
 
@@ -41,7 +41,7 @@ Token_Type resolve_operator(const char* ptr) {
 		return TOK_RPAREN;
 	}
 	if (*ptr == '*') {
-		return TOK_MUL;
+		return TOK_STAR;
 	}
 	if (*ptr == '+') {
 		if (*(ptr + 1) == '+') {
