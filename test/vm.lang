@@ -4,12 +4,16 @@ fn main() {
 
 	a = a * (b + 1);
 
+	c:*s8 = &a;
+	d: s8 = *c;
+
 	while a > 10 {
 		a = a - 1;
 		printint(a);
 		if a == 20 {
+			printint(a);
+			printhex(&a);
 			return a;
 		}
 	}
-
 }

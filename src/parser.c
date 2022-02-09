@@ -324,6 +324,7 @@ inline const Type* resolve_pointer_type(Ast_Node* node) {
 		type = resolve_pointer_type(node->right);
 		new_type = *type;
 		new_type.flags |= TYPE_POINTER;
+		new_type.size = TYPE_LONG_SIZE;
 		memcpy(&node->type, &new_type, sizeof(Type));
 	}
 	return type;
@@ -348,7 +349,9 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 
 	Ast_Result type_result = parse_prefix(parser, token);
 
-	resolve_pointer_type(type_result.node);
+	(void) resolve_pointer_type(type_result.node);
+	// Copy the resolved type to the identifier
+	iden_result.node->type = type_result.node->type;
 
 	if (type_result.node->node_type != AST_IDENT
 		&& type_result.node->node_type != AST_DEREF
@@ -425,12 +428,14 @@ Ast_Result parse_prefix(Parser* parser, Token** token) {
 		return ast_result;
 	}
 
-	Ast_Result ast_right_result = parser_create_node(parser, token);
+	Ast_Result ast_right_result = parse_prefix(parser, token);
 	if (ast_right_result.error != AST_NO_ERROR) {
 		ast_result.error = AST_ERROR;
 		return ast_result;
 	}
 	ast_result.node->right = ast_right_result.node;
+
+	PARSER_PUSH(&ast_result);
 
 	return ast_result;
 }
@@ -624,12 +629,14 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	} else {
 		PARSER_POP(&left_ast_result);
 	}
+
 	Ast_Result result = parser_create_node(parser, token);
 	Ast_Result right_ast_result = parse_expression(parser, token);
 	if (right_ast_result.error != AST_NO_ERROR) {
 		result.error = right_ast_result.error;
 		return result;
 	}
+
 	result.node->left = left_ast_result.node;
 	result.node->right = right_ast_result.node;
 
@@ -641,6 +648,15 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	if (result.node->left != NULL &&
 		result.node->left->node_type == AST_TYPE_DECL) {
 		result.node->left->left->node_type = AST_LVIDENT;
+	}
+
+	// Fix type for references
+	if (result.node->left->node_type == AST_DEREF) {
+		Ast_Node* iden = result.node->left->right;
+		while (iden != NULL && iden->node_type == AST_DEREF)
+			iden = iden->right;
+		if (iden != NULL)
+			iden->node_type = AST_LVIDENT;
 	}
 
 	return result;

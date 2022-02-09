@@ -90,7 +90,7 @@ typedef struct parser {
 		char* text;
 	} code;
 
-	List errors;
+	List  errors;
 	Stack node_stack;
 	Stack function_stack;
 } Parser;
@@ -389,6 +389,9 @@ Ast_Result parse_return_statement(Parser* parser, Token** token);
  * @return Ast_Result of parsed prefix node.
  */
 Ast_Result parse_prefix(Parser* parser, Token** token);
+
+
+const Type* resolve_pointer_type(Ast_Node* node);
 
 #endif //LANG_PARSER_H
 

@@ -6,6 +6,8 @@
 
 #include "interpreter.h"
 
+const char* resolve_pointer_var_name(Ast_Node* node);
+
 // Set all registers as available
 void freeall_registers(Interpreter* interpreter) {
 	s32 i;
@@ -34,7 +36,7 @@ static s32 alloc_register(Interpreter* interpreter) {
 // Check to see if it's not already there.
 static void free_register(Interpreter* interpreter, s32 reg) {
 	if (interpreter->freereg[reg] != 0) {
-		fprintf(stderr, "Error trying to free register %d\n", reg);
+		fprintf(stderr, "Error trying to free register %ld\n", reg);
 		assert(false);
 		exit(1);
 	}
@@ -128,6 +130,7 @@ s32 cg_print_int(Interpreter* interpreter, s32 reg) {
 	if (!interpreter->freereg[reg]) {
 		free_register(interpreter, reg);
 	}
+
 	return reg;
 }
 
@@ -175,8 +178,8 @@ s32 addglob(Interpreter* interpreter, const char* name, Type type) {
 }
 
 // Generate a global symbol
-void cg_globsym(Interpreter* interpreter, const char* name, u32 size) {
-	size = size >= TYPE_INT_SIZE ? 8 : 1;
+void cg_globsym(Interpreter* interpreter, const char* name, Type type) {
+	s32 size = (type.size > TYPE_CHAR_SIZE ? TYPE_LONG_SIZE : TYPE_CHAR_SIZE);
 	fprintf(interpreter->output, "\t# cg_globsym\n");
 	fprintf(interpreter->output, "\t.comm\t%s,%ld,%ld\n",
 			name, size, size);
@@ -186,7 +189,6 @@ void cg_globsym(Interpreter* interpreter, const char* name, u32 size) {
 s32 cg_storglob(Interpreter* interpreter, s32 r, const char* name) {
 	if (r == -1) return r;
 	fprintf(interpreter->output, "\t# cg_storglob\n");
-
 
 	Symbol* symbol = findglobsym(interpreter, name);
 	assert(symbol != NULL);
@@ -198,7 +200,9 @@ s32 cg_storglob(Interpreter* interpreter, s32 r, const char* name) {
 		fprintf(interpreter->output, "\tmovb\t%s, %s(%%rip)\n",
 				interpreter->b_registers[r], name);
 	}
-	free_register(interpreter, r);
+	if (!interpreter->freereg[r]) {
+		free_register(interpreter, r);
+	}
 	return (r);
 }
 
@@ -417,7 +421,8 @@ s32 cg_funccall(Interpreter* interpreter, s32 reg, const char* name) {
 			name);
 	fprintf(interpreter->output, "\tmovq\t%%rax, %s\n",
 			interpreter->registers[retreg]);
-	free_register(interpreter, retreg);
+	// free_register(interpreter, retreg);
+	freeall_registers(interpreter);
 	return retreg;
 }
 
@@ -426,6 +431,32 @@ void cg_return(Interpreter* interpreter, s32 reg, Symbol* symbol) {
 	fprintf(interpreter->output, "\tmovq\t%s, %%rax\n",
 			interpreter->registers[reg]);
 	cg_jump(interpreter, symbol->end_label);
+}
+
+s32 cg_address(Interpreter* interpreter, const char* name) {
+	s32 r = alloc_register(interpreter);
+
+	fprintf(interpreter->output, "\t# cg_address %s\n", name);
+	fprintf(interpreter->output, "\tleaq\t%s(%%rip), %s\n", name, interpreter->registers[r]);
+	return r;
+}
+
+s32 cg_deref(Interpreter* interpreter, s32 reg, const char* name) {
+	Symbol* symbol = findglobsym(interpreter, name);
+	assert(symbol != NULL);
+
+	fprintf(interpreter->output, "\t# cg_deref\n");
+	s32 size = (symbol->type.size > TYPE_CHAR_SIZE ? TYPE_LONG_SIZE : TYPE_CHAR_SIZE);
+	if (size > 1) {
+		fprintf(interpreter->output, "\tmovq\t(%s), %s\n",
+				interpreter->registers[reg],
+				interpreter->registers[reg]);
+	} else {
+		fprintf(interpreter->output, "\tmovzbq\t(%s), %s\n",
+				interpreter->registers[reg],
+				interpreter->registers[reg]);
+	}
+	return reg;
 }
 
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
@@ -455,7 +486,11 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	}
 
 	if (node->right) {
-		rightreg = interpreter_decode(interpreter, node->right, -1, node);
+		// Do not parse the right size of the type declaration
+		if (node->node_type != AST_TYPE_DECL || node->right->node_type != AST_DEREF)
+			rightreg = interpreter_decode(interpreter, node->right, -1, node);
+		else
+			rightreg = reg;
 	}
 
 	if (node->left) {
@@ -466,6 +501,10 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	}
 
 	switch (node->node_type) {
+		case AST_DEREF:
+			return cg_deref(interpreter, leftreg, resolve_pointer_var_name(node));
+		case AST_ADDR:
+			return cg_address(interpreter, resolve_pointer_var_name(node));
 		case AST_FUNC_RETURN:
 			name = node->middle->left->token.string_value.data;
 			cg_return(interpreter, rightreg, findglobsym(interpreter, name));
@@ -531,7 +570,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			name = node->token.string_value.data;
 			if (findglob(interpreter, name) == -1) {
 				addglob(interpreter, name, node->type);
-				cg_globsym(interpreter, name, node->type.size);
+				cg_globsym(interpreter, name, node->type);
 			}
 			return cg_storglob(interpreter, reg, name);
 		case AST_IDENT:
@@ -539,6 +578,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			if (findglob(interpreter, name) == -1) return -1;
 			return cg_loadglob(interpreter, name);
 		case AST_ASSIGN:
+			freeall_registers(interpreter);
 			return rightreg;
 		case AST_LITERAL:
 			switch (node->token.type) {
@@ -558,6 +598,14 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			break;
 	}
 	return 0;
+}
+
+const char* resolve_pointer_var_name(Ast_Node* node) {
+	while (node != NULL && (node->node_type == AST_DEREF || node->node_type == AST_ADDR))
+		node = node->right;
+	if (node == NULL)
+		return NULL;
+	return node->token.string_value.data;
 }
 
 #pragma clang diagnostic pop
