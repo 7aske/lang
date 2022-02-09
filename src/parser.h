@@ -111,12 +111,12 @@ typedef struct parser_result {
 
 // Returns the current token and increments the token point
 #define NEXT_TOKEN(ptrptr) (*(ptrptr))++
-// Checks whether next token in the token list is of type __token.
+// Checks whether next token in the token list is of node_type __token.
 #define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) + 1)->type == (__token))
 #define IS_AT_OF_TYPE(__ptrptr, __offset, __token) (((*(__ptrptr)) + __offset)->type == (__token))
-// Checks whether previous token in the token list is of type __token.
+// Checks whether previous token in the token list is of node_type __token.
 #define IS_PREV_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) - 1)->type == (__token))
-// Checks whether current token in the token list is of type __token.
+// Checks whether current token in the token list is of node_type __token.
 #define IS_CURR_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->type == (__token))
 // Prints __end number of __str to stderr.
 #define PAD_TO(__end, __str) for (int _i = 0; _i < (__end); _i++) {\
@@ -223,7 +223,7 @@ Ast_Result parse_expression(Parser* parser, Token** token);
 Ast_Result parse_boolean_node(Parser* parser, Token** token);
 
 /**
- * Function for parsing a binary node. Binary nodes can be of type: arithmetic,
+ * Function for parsing a binary node. Binary nodes can be of node_type: arithmetic,
  * relational, equality etc.
  *
  * @param parser this
@@ -290,11 +290,11 @@ Ast_Result parser_create_node_no_inc(Parser* parser, Token* token);
 Ast_Result parse_argument_list(Parser* parser, Token** token);
 
 /**
- * Function for parsing variable type declaration.
+ * Function for parsing variable node_type declaration.
  *
  * @param parser this
  * @param token Pointer to the list lexer of tokens.
- * @return Ast_Result of parsed type declaration node.
+ * @return Ast_Result of parsed node_type declaration node.
  */
 Ast_Result parse_type_decl_node(Parser* parser, Token** token);
 
@@ -318,11 +318,11 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token);
 Ast_Result parse_fn_statement(Parser* parser, Token** token);
 
 /**
- * Function for parsing function return type.
+ * Function for parsing function return node_type.
  *
  * @param parser this
  * @param token Pointer to the list lexer of tokens.
- * @return Ast_Result of parsed function return type.
+ * @return Ast_Result of parsed function return node_type.
  */
 Ast_Result parse_ret_type_node(Parser* parser, Token** token);
 

@@ -74,13 +74,13 @@ typedef enum ast_node_type {
  * Struct representing an AST node.
  *
  * Left, middle and right parameters are valid only if the node is not of
- * type AST_BLOCK_NODE.
+ * node_type AST_BLOCK_NODE.
  * @param left     Left child of the AST node.
  * @param middle   Middle child of the AST node (typically for if statement condition).
  * @param right    Right child of the AST node.
- * @param ret_type Return type specifier in a function definition;
+ * @param ret_type Return node_type specifier in a function definition;
  *
- * Nodes, size and capacity parameters are valid only if the node is of type
+ * Nodes, size and capacity parameters are valid only if the node is of node_type
  * AST_BLOCK_NODE.
  * @param nodes    Heap-allocated list of pointers to the nodes that are "inside"
  *                 of the block node.
@@ -88,7 +88,7 @@ typedef enum ast_node_type {
  * @param capacity Size of the heap-allocated array for storing nodes.
  *
  * @param precedence Operator precedence of the node.
- * @param type       AST type of the node.
+ * @param type       AST node_type of the node.
  * @param token      Token that resulted in creation of this node. Not all node
  *                   will have their corresponding tokens.
  *
@@ -105,7 +105,8 @@ typedef struct ast_node {
 		List nodes;
 	};
 	s32 precedence;
-	Ast_Node_Type type;
+	Type type;
+	Ast_Node_Type node_type;
 	Token token;
 } Ast_Node;
 
@@ -119,11 +120,11 @@ typedef struct ast_node {
 Ast_Node* ast_node_new(Token* token);
 
 /**
- * Function that resolves a AST node type based on the token type. Some token
+ * Function that resolves a AST node node_type based on the token node_type. Some token
  * types have strictly bound AST node types that they can create.
  *
- * @param token Token based on which the AST node type is parsed.
- * @return Ast_Node_Type corresponding to the Token type.
+ * @param token Token based on which the AST node node_type is parsed.
+ * @return Ast_Node_Type corresponding to the Token node_type.
  */
 Ast_Node_Type convert_token_to_ast_node_type(Token_Type token);
 

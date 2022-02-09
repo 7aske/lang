@@ -245,7 +245,7 @@ Ast_Result parse_fn_statement(Parser* parser, Token** token) {
 	assert(IS_CURR_OF_TYPE(token, TOK_FN));
 	Ast_Result fn_result = parser_create_node(parser, token);
 	Ast_Result left_result = parser_create_node(parser, token);
-	if (left_result.node->type != AST_IDENT) {
+	if (left_result.node->node_type != AST_IDENT) {
 		parser_report_error(parser, *token, "Expected an identifier");
 		fn_result.error = AST_ERROR;
 		return fn_result;
@@ -303,7 +303,7 @@ Ast_Result parse_ret_type_node(Parser* parser, Token** token) {
 	Ast_Result result = parser_create_node(parser, token);
 	Ast_Result ret_type_iden = parser_create_node(parser, token);
 	if (ret_type_iden.error != AST_NO_ERROR) {
-		parser_report_error(parser, *token, "Unable to parse return type");
+		parser_report_error(parser, *token, "Unable to parse return node_type");
 		result.error = AST_ERROR;
 		return result;
 	}
@@ -314,7 +314,7 @@ Ast_Result parse_ret_type_node(Parser* parser, Token** token) {
 Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	Ast_Result type_decl_result;
 	Ast_Result iden_result = parser_create_node(parser, token);
-	if (iden_result.node->type != AST_IDENT) {
+	if (iden_result.node->node_type != AST_IDENT) {
 		parser_report_error(parser, *token, "Token should be of type IDENT");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
@@ -329,7 +329,7 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result = parser_create_node(parser, token);
 
 	Ast_Result type_result = parser_create_node(parser, token);
-	if (type_result.node->type != AST_IDENT) {
+	if (type_result.node->node_type != AST_IDENT) {
 		parser_report_error(parser, *token, "Token should be of type IDENT");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
@@ -338,8 +338,19 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result.node->left = iden_result.node;
 	type_decl_result.node->right = type_result.node;
 
+	const Type* possible_primitive_type =
+		resolve_primitive_type(type_result.node->token.string_value.data);
+	if (possible_primitive_type != NULL) {
+		memcpy(&type_decl_result.node->left->type,
+			   possible_primitive_type,
+			   sizeof(Type));
+	} else {
+		// @ToDo
+		assert(false);
+	}
+
 	// @ToDo
-	// Set primitive type
+	// Set primitive node_type
 	// type_decl_result.node->left->token.p_type = type_decl_result.node->right->token.p_type;
 
 	PARSER_PUSH(&type_decl_result);
@@ -549,7 +560,7 @@ Ast_Result parse_function_call(Parser* parser, Token** token) {
 	Token lparen_token = **token;
 	lparen_token.type = TOK_LPAREN;
 	result = parser_create_node_no_inc(parser, &lparen_token);
-	result.node->type = AST_FUNC_CALL;
+	result.node->node_type = AST_FUNC_CALL;
 
 	result.node->left = left_ast_result.node;
 
@@ -590,12 +601,12 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	result.node->left = left_ast_result.node;
 	result.node->right = right_ast_result.node;
 
-	if (result.node->left != NULL && result.node->left->type == AST_IDENT)  {
-		result.node->left->type = AST_LVIDENT;
+	if (result.node->left != NULL && result.node->left->node_type == AST_IDENT)  {
+		result.node->left->node_type = AST_LVIDENT;
 	}
 
-	if (result.node->left != NULL && result.node->left->type == AST_TYPE_DECL)  {
-		result.node->left->left->type = AST_LVIDENT;
+	if (result.node->left != NULL && result.node->left->node_type == AST_TYPE_DECL)  {
+		result.node->left->left->node_type = AST_LVIDENT;
 	}
 
 	return result;
@@ -609,7 +620,7 @@ Ast_Result parse_argument_list(Parser* parser, Token** token) {
 
 	argument_list_result = parser_create_node_no_inc(parser, &block_token);
 	// @Temporary
-	argument_list_result.node->type = AST_ARG_LIST;
+	argument_list_result.node->node_type = AST_ARG_LIST;
 
 	// Parse all the come delimited expressions as argument nodes.
 	while (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {

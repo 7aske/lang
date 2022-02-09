@@ -112,7 +112,6 @@ typedef struct token {
 	u32 c1;
 	u32 r1;
 
-	Primitive p_type;
 	union {
 		s64 integer_value;
 		// @Incomplete implement 32bit float
@@ -249,7 +248,7 @@ static const char* token_value[] = {
 Token_Type resolve_token(char* buffer, u32 size);
 
 /**
- * Resolves an operator type token from the text pointed by the pointer ptr.
+ * Resolves an operator node_type token from the text pointed by the pointer ptr.
  *
  * @param ptr Pointer to the text buffer containing the text to be parsed.
  * @return Resolved operator token or TOK_INVALID if the text cannot be resolved.

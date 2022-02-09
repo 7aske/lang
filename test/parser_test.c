@@ -23,24 +23,24 @@ int main(void) {
 
 	result = PARSER_TEST_CASE("if true {1;} else {2;}");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(root->type == AST_IF);
-	assert(root->middle->type == AST_LITERAL);
-	assert(root->left->type == AST_BLOCK);
-	assert(list_get_as_deref(&root->left->nodes, 0, Ast_Node*)->type == AST_LITERAL);
-	assert(root->right->type == AST_BLOCK);
-	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->type == AST_LITERAL);
+	assert(root->node_type == AST_IF);
+	assert(root->middle->node_type == AST_LITERAL);
+	assert(root->left->node_type == AST_BLOCK);
+	assert(list_get_as_deref(&root->left->nodes, 0, Ast_Node*)->node_type == AST_LITERAL);
+	assert(root->right->node_type == AST_BLOCK);
+	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->node_type == AST_LITERAL);
 
 
 	result = PARSER_TEST_CASE("if a == true {b=2;} else {b=3;}");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(root->type == AST_IF);
-	assert(root->middle->type == AST_EQUALITY);
-	assert(root->middle->left->type == AST_IDENT);
-	assert(root->middle->right->type == AST_LITERAL);
-	assert(root->left->type == AST_BLOCK);
-	assert(list_get_as(&root->left->nodes, 0, Ast_Node*)->type == AST_ASSIGN);
-	assert(root->right->type == AST_BLOCK);
-	assert(list_get_as(&root->left->nodes, 0, Ast_Node*)->type == AST_ASSIGN);
+	assert(root->node_type == AST_IF);
+	assert(root->middle->node_type == AST_EQUALITY);
+	assert(root->middle->left->node_type == AST_IDENT);
+	assert(root->middle->right->node_type == AST_LITERAL);
+	assert(root->left->node_type == AST_BLOCK);
+	assert(list_get_as(&root->left->nodes, 0, Ast_Node*)->node_type == AST_ASSIGN);
+	assert(root->right->node_type == AST_BLOCK);
+	assert(list_get_as(&root->left->nodes, 0, Ast_Node*)->node_type == AST_ASSIGN);
 
 	result = PARSER_TEST_CASE("a == true { function; }}");
 	assert(result.errors.count >= 1);
@@ -57,18 +57,18 @@ int main(void) {
 							  "}");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
-	assert(root->type == AST_IF);
-	assert(root->middle->type == AST_BOOLEAN);
+	assert(root->node_type == AST_IF);
+	assert(root->middle->node_type == AST_BOOLEAN);
 
 	result = PARSER_TEST_CASE("if (a == b) || b {"
 							  "} else {"
 							  "}");
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(root->type == AST_IF);
-	assert(root->middle->type == AST_BOOLEAN);
-	assert(root->middle->left->type == AST_EQUALITY);
-	assert(root->middle->right->type == AST_IDENT);
+	assert(root->node_type == AST_IF);
+	assert(root->middle->node_type == AST_BOOLEAN);
+	assert(root->middle->left->node_type == AST_EQUALITY);
+	assert(root->middle->right->node_type == AST_IDENT);
 	assert(root->middle->token.type == TOK_OR);
 
 	result = PARSER_TEST_CASE("if (a == (b)) || b {"
@@ -76,69 +76,69 @@ int main(void) {
 							  "}");
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(root->type == AST_IF);
-	assert(root->middle->type == AST_BOOLEAN);
-	assert(root->middle->left->type == AST_EQUALITY);
-	assert(root->middle->left->left->type == AST_IDENT);
-	assert(root->middle->left->right->type == AST_IDENT);
-	assert(root->middle->right->type == AST_IDENT);
+	assert(root->node_type == AST_IF);
+	assert(root->middle->node_type == AST_BOOLEAN);
+	assert(root->middle->left->node_type == AST_EQUALITY);
+	assert(root->middle->left->left->node_type == AST_IDENT);
+	assert(root->middle->left->right->node_type == AST_IDENT);
+	assert(root->middle->right->node_type == AST_IDENT);
 	assert(root->middle->token.type == TOK_OR);
 
 
 	result = PARSER_TEST_CASE("(1 + 2) * 3 + 5");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
-	assert(root->type == AST_ARITHMETIC);
+	assert(root->node_type == AST_ARITHMETIC);
 	assert(root->token.type == TOK_ADD);
-	assert(root->left->type == AST_ARITHMETIC);
-	assert(root->right->type == AST_LITERAL);
+	assert(root->left->node_type == AST_ARITHMETIC);
+	assert(root->right->node_type == AST_LITERAL);
 
 	result = PARSER_TEST_CASE("str: string = \"test\";");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->type == AST_TYPE_DECL);
-	assert(root->right->type == AST_LITERAL);
+	assert(root->left->node_type == AST_TYPE_DECL);
+	assert(root->right->node_type == AST_LITERAL);
 
 	result = PARSER_TEST_CASE("a = 123;");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->type == AST_LVIDENT);
-	assert(root->right->type == AST_LITERAL);
+	assert(root->left->node_type == AST_LVIDENT);
+	assert(root->right->node_type == AST_LITERAL);
 
 	result = PARSER_TEST_CASE("a = (a + b) - 1; a = a + b;");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->type == AST_LVIDENT);
-	assert(root->right->type == AST_ARITHMETIC);
+	assert(root->left->node_type == AST_LVIDENT);
+	assert(root->right->node_type == AST_ARITHMETIC);
 	assert(root->right->token.type == TOK_SUB);
-	assert(root->right->left->type == AST_ARITHMETIC);
+	assert(root->right->left->node_type == AST_ARITHMETIC);
 	assert(root->right->left->token.type == TOK_ADD);
-	assert(root->right->right->type == AST_LITERAL);
+	assert(root->right->right->node_type == AST_LITERAL);
 	root = *(Ast_Node**) list_get(&result.nodes, 1);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->type == AST_LVIDENT);
-	assert(root->right->type == AST_ARITHMETIC);
-	assert(root->right->left->type == AST_IDENT);
-	assert(root->right->right->type == AST_IDENT);
+	assert(root->left->node_type == AST_LVIDENT);
+	assert(root->right->node_type == AST_ARITHMETIC);
+	assert(root->right->left->node_type == AST_IDENT);
+	assert(root->right->right->node_type == AST_IDENT);
 	assert(strcmp(root->right->left->token.string_value.data, "a") == 0);
 	assert(strcmp(root->right->right->token.string_value.data, "b") == 0);
 
 	result = PARSER_TEST_CASE("fn write(file: File, count: u64, byte: u32) -> void {print();}");
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(root->type == AST_FUNC_DEF);
-	assert(root->left->type == AST_IDENT);
-	assert(root->middle->type == AST_ARG_LIST);
-	assert(list_get_as_deref(&root->middle->nodes, 0, Ast_Node*)->type == AST_TYPE_DECL);
-	assert(list_get_as_deref(&root->middle->nodes, 1, Ast_Node*)->type == AST_TYPE_DECL);
-	assert(list_get_as_deref(&root->middle->nodes, 2, Ast_Node*)->type == AST_TYPE_DECL);
-	assert(root->right->type == AST_BLOCK);
-	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->type == AST_FUNC_CALL);
+	assert(root->node_type == AST_FUNC_DEF);
+	assert(root->left->node_type == AST_IDENT);
+	assert(root->middle->node_type == AST_ARG_LIST);
+	assert(list_get_as_deref(&root->middle->nodes, 0, Ast_Node*)->node_type == AST_TYPE_DECL);
+	assert(list_get_as_deref(&root->middle->nodes, 1, Ast_Node*)->node_type == AST_TYPE_DECL);
+	assert(list_get_as_deref(&root->middle->nodes, 2, Ast_Node*)->node_type == AST_TYPE_DECL);
+	assert(root->right->node_type == AST_BLOCK);
+	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->node_type == AST_FUNC_CALL);
 	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->middle->nodes.count == 0);
-	assert(root->ret_type->type == AST_FUNC_RET_TYPE);
+	assert(root->ret_type->node_type == AST_FUNC_RET_TYPE);
 
 	result = PARSER_TEST_CASE("write(,,);");
 	assert(result.errors.count == 1);
@@ -146,20 +146,20 @@ int main(void) {
 	result = PARSER_TEST_CASE("for name in names { print(name); }");
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(root->type == AST_FOR);
-	assert(root->middle->type == AST_IN);
-	assert(root->middle->left->type== AST_IDENT);
-	assert(root->middle->right->type== AST_IDENT);
-	assert(root->right->type == AST_BLOCK);
+	assert(root->node_type == AST_FOR);
+	assert(root->middle->node_type == AST_IN);
+	assert(root->middle->left->node_type == AST_IDENT);
+	assert(root->middle->right->node_type == AST_IDENT);
+	assert(root->right->node_type == AST_BLOCK);
 
 	result = PARSER_TEST_CASE("for i in 1..10 { print(i); }");
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
-	assert(root->type == AST_FOR);
-	assert(root->middle->type == AST_IN);
-	assert(root->middle->left->type== AST_IDENT);
-	assert(root->middle->right->type== AST_ITER);
-	assert(root->middle->right->left->type== AST_LITERAL);
-	assert(root->middle->right->right->type== AST_LITERAL);
-	assert(root->right->type == AST_BLOCK);
+	assert(root->node_type == AST_FOR);
+	assert(root->middle->node_type == AST_IN);
+	assert(root->middle->left->node_type == AST_IDENT);
+	assert(root->middle->right->node_type == AST_ITER);
+	assert(root->middle->right->left->node_type == AST_LITERAL);
+	assert(root->middle->right->right->node_type == AST_LITERAL);
+	assert(root->right->node_type == AST_BLOCK);
 }

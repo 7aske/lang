@@ -72,27 +72,27 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 Ast_Node* ast_node_new(Token* token) {
 	assert(token->type != TOK_RPAREN);
 	Ast_Node* ast_node = (Ast_Node*) calloc(1, sizeof(Ast_Node));
-	ast_node->type = convert_token_to_ast_node_type(token->type);
+	ast_node->node_type = convert_token_to_ast_node_type(token->type);
 	ast_node->precedence = 0; // default
 
 	// We do this only in the case of block nodes
-	if (ast_node->type == AST_BLOCK) {
+	if (ast_node->node_type == AST_BLOCK) {
 		list_new(&ast_node->nodes, sizeof(Ast_Node*));
 	}
 
-	if (ast_node->type == AST_BOOLEAN) {
+	if (ast_node->node_type == AST_BOOLEAN) {
 		if (token->type == TOK_AND) {
 			ast_node->precedence = AST_AND_PRECEDENCE;
 		} else if (token->type == TOK_OR) {
 			ast_node->precedence = AST_OR_PRECEDENCE;
 		}
-	} else if (ast_node->type == AST_EQUALITY) {
+	} else if (ast_node->node_type == AST_EQUALITY) {
 		ast_node->precedence = AST_EQUALITY_PRECEDENCE;
-	} else if (ast_node->type == AST_RELATIONAL) {
+	} else if (ast_node->node_type == AST_RELATIONAL) {
 		ast_node->precedence = AST_RELATIONAL_PRECEDENCE;
-	} else if (ast_node->type == AST_ASSIGN) {
+	} else if (ast_node->node_type == AST_ASSIGN) {
 		ast_node->precedence = AST_ASSIGN_PRECEDENCE;
-	} else if (ast_node->type == AST_ARITHMETIC) {
+	} else if (ast_node->node_type == AST_ARITHMETIC) {
 		if (token->type == TOK_ADD ||
 			token->type == TOK_SUB) {
 			ast_node->precedence = AST_ADD_SUB_PRECEDENCE;
@@ -110,6 +110,6 @@ Ast_Node* ast_node_new(Token* token) {
 
 // Function for adding parsed AST nodes to the block node
 inline Ast_Node* ast_block_node_add_node(Ast_Node* block_node, Ast_Node* ast_node) {
-	assert(block_node->type == AST_BLOCK || block_node->type == AST_ARG_LIST);
+	assert(block_node->node_type == AST_BLOCK || block_node->node_type == AST_ARG_LIST);
 	return list_push(&block_node->nodes, &ast_node);
 }

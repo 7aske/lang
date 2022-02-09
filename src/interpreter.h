@@ -20,8 +20,8 @@ static char* invcmplist[] =
 
 typedef struct symbol {
 	const char* name;
-	u32         size;
-	Primitive   p_type;
+	// @Warning Storing copies lol
+	Type        type;
 	s32         end_label;
 } Symbol;
 

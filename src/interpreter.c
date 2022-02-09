@@ -168,16 +168,15 @@ s32 addglobsym(Interpreter* interpreter, Symbol symbol) {
 
 // Add a global symbol to the symbol table.
 // Return the slot number in the symbol table
-s32 addglob(Interpreter* interpreter, const char* name, Primitive p_type) {
-	Symbol symbol = {.name = strdup(name)};
+s32 addglob(Interpreter* interpreter, const char* name, Type type) {
+	Symbol symbol = {.name = strdup(name), .type=type, 0};
 
 	return addglobsym(interpreter, symbol);
 }
 
 // Generate a global symbol
-void cg_globsym(Interpreter* interpreter, const char* name, Primitive type) {
-	s32 size = type == TOK_P_CHAR ? 1 : 8;
-
+void cg_globsym(Interpreter* interpreter, const char* name, u32 size) {
+	size = size >= TYPE_INT_SIZE ? 8 : 1;
 	fprintf(interpreter->output, "\t# cg_globsym\n");
 	fprintf(interpreter->output, "\t.comm\t%s,%ld,%ld\n",
 			name, size, size);
@@ -192,7 +191,7 @@ s32 cg_storglob(Interpreter* interpreter, s32 r, const char* name) {
 	Symbol* symbol = findglobsym(interpreter, name);
 	assert(symbol != NULL);
 
-	if (symbol->p_type >= TOK_P_INT) {
+	if (symbol->type.size >= TYPE_INT_SIZE) {
 		fprintf(interpreter->output, "\tmovq\t%s, %s(%%rip)\n",
 				interpreter->registers[r], name);
 	} else {
@@ -213,8 +212,8 @@ s32 cg_loadglob(Interpreter* interpreter, const char* name) {
 	Symbol* symbol = findglobsym(interpreter, name);
 	assert(symbol != NULL);
 
-	// Print out the code to initialise it
-	if (symbol->p_type >= TOK_P_INT){
+	// Print out the code to initialize it
+	if (symbol->type.size >= TYPE_INT_SIZE){
 		fprintf(interpreter->output, "\tmovq\t%s(%%rip), %s\n",
 				name, interpreter->registers[r]);
 	} else {
@@ -432,20 +431,20 @@ void cg_return(Interpreter* interpreter, s32 reg, Symbol* symbol) {
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
 	s32 leftreg, rightreg, retreg;
 	const char* name;
-	if (node->type == AST_IF) {
+	if (node->node_type == AST_IF) {
 		return interpreter_decode_if(interpreter, node, reg, parent);
-	} else if (node->type == AST_WHILE) {
+	} else if (node->node_type == AST_WHILE) {
 		return interpreter_decode_while(interpreter, node, reg, parent);
-	} else if (node->type == AST_FUNC_DEF) {
+	} else if (node->node_type == AST_FUNC_DEF) {
 		name = node->left->token.string_value.data;
 		s32 end_label = get_label(interpreter);
-		addglobsym(interpreter, (Symbol) {.name=name, .end_label=end_label, .p_type=TOK_P_LONG});
+		addglobsym(interpreter, (Symbol) {.name=name, .end_label=end_label, .type=node->type});
 		cg_funcpreamble(interpreter, name);
 		interpreter_decode(interpreter, node->right, -1, node);
 		cg_label(interpreter, end_label);
 		cg_funcpostamble(interpreter);
 		return -1;
-	} else if (node->type == AST_BLOCK) {
+	} else if (node->node_type == AST_BLOCK) {
 		for (s32 i = 0; i < node->nodes.count; ++i) {
 			retreg = interpreter_decode(interpreter,
 										*list_get_as(&node->nodes, i, Ast_Node**),
@@ -461,12 +460,12 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 
 	if (node->left) {
 		// @Temporary @Hack to persist the register returned by the right tree
-		// parsing of the assignment node + type decl
-		if (node->type == AST_TYPE_DECL && rightreg == -1) rightreg = reg;
+		// parsing of the assignment node + node_type decl
+		if (node->node_type == AST_TYPE_DECL && rightreg == -1) rightreg = reg;
 		leftreg = interpreter_decode(interpreter, node->left, rightreg, node);
 	}
 
-	switch (node->type) {
+	switch (node->node_type) {
 		case AST_FUNC_RETURN:
 			name = node->middle->left->token.string_value.data;
 			cg_return(interpreter, rightreg, findglobsym(interpreter, name));
@@ -491,7 +490,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				case TOK_EQ:
 				case TOK_NE:
 					if (parent != NULL &&
-						(parent->type == AST_IF || parent->type == AST_WHILE))
+						(parent->node_type == AST_IF || parent->node_type == AST_WHILE))
 						return cg_compare_jump(interpreter, node->token.type,
 											   leftreg, rightreg, reg);
 					else
@@ -506,7 +505,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				case TOK_LT:
 				case TOK_LE:
 					if (parent != NULL &&
-						(parent->type == AST_IF || parent->type == AST_WHILE))
+						(parent->node_type == AST_IF || parent->node_type == AST_WHILE))
 						return cg_compare_jump(interpreter, node->token.type,
 											   leftreg, rightreg, reg);
 					else
@@ -531,8 +530,8 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		case AST_LVIDENT:
 			name = node->token.string_value.data;
 			if (findglob(interpreter, name) == -1) {
-				addglob(interpreter, name, node->token.p_type);
-				cg_globsym(interpreter, name, node->token.p_type);
+				addglob(interpreter, name, node->type);
+				cg_globsym(interpreter, name, node->type.size);
 			}
 			return cg_storglob(interpreter, reg, name);
 		case AST_IDENT:

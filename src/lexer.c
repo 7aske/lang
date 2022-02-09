@@ -4,7 +4,7 @@
 
 #include "lexer.h"
 
-// Checks if the string is starting with a valid identifier type.
+// Checks if the string is starting with a valid identifier node_type.
 inline bool lexer_startof_iden(const char* ptr) {
 	return isalpha(*ptr) || *ptr == '$' || *ptr == '_';
 }
@@ -189,16 +189,6 @@ u32 lexer_lex(Lexer* lexer) {
 			// an identifier.
 			if (possible_token == TOK_INVALID) {
 				lexer_token_new(&token, TOK_IDEN, size, col, row);
-
-				// @Optimization this can probably be done at a later step
-				// i = 1 because the default type is none
-				// for (int i = 1; i < PRIMITIVE_TYPES_LEN; ++i) {
-				// 	Primitive_Type type = primitive_types[i];
-				// 	if (strcmp(string_buffer->data, type.iden) == 0) {
-				// 		token.p_type = type.type;
-				// 	}
-				// }
-
 				strncpy(token.string_value.data, string_buffer->data,
 						string_buffer->count);
 			} else {

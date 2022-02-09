@@ -6,51 +6,51 @@
 #define LANG_TYPE_H
 
 #include <stdlib.h>
+#include <string.h>
 
-typedef enum primitive {
-	TOK_P_NONE = 0,
-	TOK_P_VOID,
-	TOK_P_CHAR, // 1-byte
-	TOK_P_SHORT,// 2-byte
-	TOK_P_INT,  // 4-byte
-	TOK_P_LONG, // 8-byte
-	__TOK_P_SIZE
-} Primitive;
+#include "stdtypes.h"
 
-static const int primitive_sizes[__TOK_P_SIZE][2] = {
-	{TOK_P_NONE,  0},
-	{TOK_P_VOID,  0},
-	{TOK_P_CHAR,  1},
-	{TOK_P_SHORT, 2},
-	{TOK_P_INT,   4},
-	{TOK_P_LONG,  8},
-};
+#define TYPE_CHAR_SIZE  1
+#define TYPE_BOOL_SIZE  TYPE_CHAR_SIZE
+#define TYPE_SHORT_SIZE (2 * TYPE_CHAR_SIZE)
+#define TYPE_INT_SIZE   (4 * TYPE_CHAR_SIZE)
+#define TYPE_LONG_SIZE  (8 * TYPE_CHAR_SIZE)
 
-typedef struct primitive_type {
-	const char* iden;
-	Primitive type;
-} Primitive_Type;
-
-static const Primitive_Type primitive_types[] = {
-	{NULL,   TOK_P_NONE},
-	{"void", TOK_P_VOID},
-	{"bool", TOK_P_CHAR},
-	{"s8",   TOK_P_CHAR},
-	{"s16",  TOK_P_SHORT},
-	{"s32",  TOK_P_INT},
-	{"int",  TOK_P_INT},
-	{"s64",  TOK_P_LONG},
-	{"u8",   TOK_P_CHAR},
-	{"u16",  TOK_P_SHORT},
-	{"u32",  TOK_P_INT},
-	{"u64",  TOK_P_LONG},
-};
-
+#define TYPE_POINTER   0x00000001
+#define TYPE_UNSIGNED  0x00000002
+#define TYPE_PRIMITIVE 0x00000004
+#define TYPE_IMMUTABLE 0x00000008
+#define TYPE_DECIMAL   0x00000010
 
 typedef struct type {
-
+	char* name;
+	u32 size;
+	u32 flags;
 } Type;
 
-#define PRIMITIVE_TYPES_LEN (sizeof(primitive_types)/sizeof(Primitive_Type))
+
+// @Optimization this calls to be a hash table
+// @formatter:off
+static const Type primitive_types[] = {
+	{.name=NULL,   .size=0,               .flags=TYPE_PRIMITIVE|TYPE_IMMUTABLE},
+	{.name="void", .size=0,               .flags=TYPE_PRIMITIVE|TYPE_IMMUTABLE},
+	{.name="bool", .size=TYPE_BOOL_SIZE,  .flags=TYPE_PRIMITIVE               },
+	{.name="int",  .size=TYPE_INT_SIZE,   .flags=TYPE_PRIMITIVE               },
+	{.name="s8",   .size=TYPE_CHAR_SIZE,  .flags=TYPE_PRIMITIVE               },
+	{.name="s16",  .size=TYPE_SHORT_SIZE, .flags=TYPE_PRIMITIVE               },
+	{.name="s32",  .size=TYPE_INT_SIZE,   .flags=TYPE_PRIMITIVE               },
+	{.name="s64",  .size=TYPE_LONG_SIZE,  .flags=TYPE_PRIMITIVE               },
+	{.name="u8",   .size=TYPE_CHAR_SIZE,  .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	{.name="u16",  .size=TYPE_SHORT_SIZE, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	{.name="u32",  .size=TYPE_INT_SIZE,   .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	{.name="u64",  .size=TYPE_LONG_SIZE,  .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	// @ToDo float64
+	{.name="float",.size=TYPE_LONG_SIZE,  .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED|TYPE_DECIMAL },
+};
+// @formatter:on
+
+#define PRIMITIVE_TYPES_LEN (sizeof(primitive_types)/sizeof(Type))
+
+const Type* resolve_primitive_type(char* iden);
 
 #endif //LANG_TYPE_H
