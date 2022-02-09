@@ -96,13 +96,8 @@ typedef struct parser {
 } Parser;
 
 /**
- * @param size  Count of Ast_Node* in the node array.
- * @param nodes Heap-allocated Array of parsed heap-allocated AST node pointers.
- *
- * @struct error Struct encapsulating data related to parser generated errors.
- * @param error.size     Number of generated errors.
- * @param error.reports  Heap-allocated array for storing Parser_Error_Report
- *                       structs.
+ * @param nodes List of parsed nodes.
+ * @param errors List of parser generated errors.
  */
 typedef struct parser_result {
 	List nodes;
