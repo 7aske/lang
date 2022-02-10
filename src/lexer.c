@@ -140,6 +140,7 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 	dest->r0 = row + 1;
 	dest->c1 = dest->c0 + code_size;
 	// @Incomplete will always show the same row as r0
+	// Are there any tokens that span rows?
 	dest->r1 = row + 1;
 }
 
@@ -171,7 +172,7 @@ u32 lexer_lex(Lexer* lexer) {
 		string_buffer_cut(string_buffer);
 
 		if (lexer_startof_linecomment(ptr)) {
-			ptr+= 2; // skip comment start
+			ptr += 2; // skip comment start
 			while (ptr && *ptr != '\n') {
 				col++;
 				ptr++;
@@ -179,9 +180,7 @@ u32 lexer_lex(Lexer* lexer) {
 			// We don't want to skip the ending newline to prevent messing up
 			// the row count of the file.
 			continue;
-		}
-
-		if (lexer_startof_iden(ptr)) {
+		} else if (lexer_startof_iden(ptr)) {
 			size = lexer_eat_iden(&ptr, string_buffer);
 			Token_Type possible_token = resolve_token(string_buffer->data,
 													  size);
@@ -189,8 +188,7 @@ u32 lexer_lex(Lexer* lexer) {
 			// an identifier.
 			if (possible_token == TOK_INVALID) {
 				lexer_token_new(&token, TOK_IDEN, size, col, row);
-				strncpy(token.string_value.data, string_buffer->data,
-						string_buffer->count);
+				token.name = strdup(string_buffer->data);
 			} else {
 				lexer_token_new(&token, possible_token, size, col, row);
 			}
@@ -206,23 +204,23 @@ u32 lexer_lex(Lexer* lexer) {
 			}
 
 			lexer_token_new(&token, TOK_LIT_CHR, size, col, row);
-			strncpy(token.string_value.data, string_buffer->data,
-					string_buffer->count + 1);
+			token.string_value.data = strdup(string_buffer->data);
+			token.string_value.size = strlen(string_buffer->data);
+
 			list_push(&lexer->tokens, &token);
 			col += 2 + size; // 2 is for two quotes;
 		} else if (lexer_startof_string(ptr)) {
 			size = lexer_eat_string(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
-				lexer_report_error(lexer, TOK_LIT_STR, col, row,
-								   "Unquoted string");
+				lexer_report_error(lexer, TOK_LIT_STR, col, row, "Unquoted string");
 				break;
 			}
 
-			lexer_token_new(&token, TOK_LIT_STR, string_buffer->count, col,
-							row);
-			strncpy(token.string_value.data, string_buffer->data,
-					string_buffer->count + 1);
+			lexer_token_new(&token, TOK_LIT_STR, string_buffer->count, col, row);
+			token.string_value.data = strdup(string_buffer->data);
+			token.string_value.size = strlen(string_buffer->data);
+
 			list_push(&lexer->tokens, &token);
 			col += (int) size;
 		} else if (lexer_startof_number(ptr) && PEEK_NEXT(ptr) != '>') {

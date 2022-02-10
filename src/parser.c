@@ -1,4 +1,5 @@
 #pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wincompatible-pointer-types-discards-qualifiers"
 #pragma ide diagnostic ignored "misc-no-recursion"
 //
 // Created by nik on 1/26/22.
@@ -320,11 +321,11 @@ Ast_Result parse_ret_type_node(Parser* parser, Token** token) {
 inline const Type* resolve_pointer_type(Ast_Node* node) {
 	const Type* type = NULL;
 	if (node->node_type == AST_IDENT) {
-		type = resolve_primitive_type(node->token.string_value.data);
+		type = resolve_primitive_type(node->token.name);
 		if (type)
 			memcpy(&node->type, type, sizeof(Type));
 		else
-			fprintf(stderr, "Unresolved type for %s\n", node->token.string_value.data);
+			fprintf(stderr, "Unresolved type for %s\n", node->token.name);
 	} else if (node->node_type == AST_DEREF || node->node_type == AST_ADDR) {
 		Type new_type;
 		type = resolve_pointer_type(node->right);
@@ -370,13 +371,13 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result.node->left = iden_result.node;
 	type_decl_result.node->right = type_result.node;
 
-	if (parser_is_scope_defined(parser, type_decl_result.node->left->token.string_value.data)) {
+	if (parser_is_scope_defined(parser, type_decl_result.node->left->token.name)) {
 		parser_report_error(parser, &type_decl_result.node->left->token, "Duplicate declaration");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	} else {
 		list_push(&parser_peek_scope(parser)->variables,
-				  type_decl_result.node->left->token.string_value.data);
+				  type_decl_result.node->left->token.name);
 	}
 
 	PARSER_PUSH(&type_decl_result);

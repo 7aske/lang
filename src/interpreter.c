@@ -467,7 +467,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	} else if (node->node_type == AST_WHILE) {
 		return interpreter_decode_while(interpreter, node, reg, parent);
 	} else if (node->node_type == AST_FUNC_DEF) {
-		name = node->left->token.string_value.data;
+		name = node->left->token.name;
 		s32 end_label = get_label(interpreter);
 		addglobsym(interpreter, (Symbol) {.name=name, .end_label=end_label, .type=node->type});
 		cg_funcpreamble(interpreter, name);
@@ -506,11 +506,11 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		case AST_ADDR:
 			return cg_address(interpreter, resolve_pointer_var_name(node));
 		case AST_FUNC_RETURN:
-			name = node->middle->left->token.string_value.data;
+			name = node->middle->left->token.name;
 			cg_return(interpreter, rightreg, findglobsym(interpreter, name));
 			return -1;
 		case AST_FUNC_CALL:
-			name = node->left->token.string_value.data;
+			name = node->left->token.name;
 			if (node->middle->nodes.count != 0) {
 				// @ToDo parse argument list
 				leftreg = interpreter_decode(interpreter,
@@ -567,14 +567,14 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		case AST_TYPE_DECL:
 			return reg;
 		case AST_LVIDENT:
-			name = node->token.string_value.data;
+			name = node->token.name;
 			if (findglob(interpreter, name) == -1) {
 				addglob(interpreter, name, node->type);
 				cg_globsym(interpreter, name, node->type);
 			}
 			return cg_storglob(interpreter, reg, name);
 		case AST_IDENT:
-			name = node->token.string_value.data;
+			name = node->token.name;
 			if (findglob(interpreter, name) == -1) return -1;
 			return cg_loadglob(interpreter, name);
 		case AST_ASSIGN:
@@ -605,7 +605,7 @@ const char* resolve_pointer_var_name(Ast_Node* node) {
 		node = node->right;
 	if (node == NULL)
 		return NULL;
-	return node->token.string_value.data;
+	return node->token.name;
 }
 
 #pragma clang diagnostic pop

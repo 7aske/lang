@@ -52,6 +52,6 @@ static const Type primitive_types[] = {
 
 #define PRIMITIVE_TYPES_LEN (sizeof(primitive_types)/sizeof(Type))
 
-const Type* resolve_primitive_type(char* iden);
+const Type* resolve_primitive_type(const char* iden);
 
 #endif //LANG_TYPE_H

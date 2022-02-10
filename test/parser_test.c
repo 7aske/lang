@@ -123,8 +123,8 @@ int main(void) {
 	assert(root->right->node_type == AST_ARITHMETIC);
 	assert(root->right->left->node_type == AST_IDENT);
 	assert(root->right->right->node_type == AST_IDENT);
-	assert(strcmp(root->right->left->token.string_value.data, "a") == 0);
-	assert(strcmp(root->right->right->token.string_value.data, "b") == 0);
+	assert(strcmp(root->right->left->token.name, "a") == 0);
+	assert(strcmp(root->right->right->token.name, "b") == 0);
 
 	result = PARSER_TEST_CASE("fn write(file: File, count: u64, byte: u32) -> void {print();}");
 	assert(result.errors.count == 0);

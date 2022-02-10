@@ -116,6 +116,7 @@ typedef struct token {
 	u32 r1;
 
 	union {
+		const char* name;
 		s64 integer_value;
 		// @Incomplete implement 32bit float
 		// float32 float32_value;

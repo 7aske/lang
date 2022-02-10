@@ -104,6 +104,7 @@ typedef struct ast_node {
 			struct ast_node* right;
 			struct ast_node* ret_type; // used for functions.
 		};
+		// Block nodes
 		List nodes;
 	};
 	s32 precedence;
