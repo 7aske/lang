@@ -47,6 +47,8 @@ int main(int argc, char** argv) {
 	lexer_new(&lexer, code_text);
 	lexer_lex(&lexer);
 	parser_new(&parser, code_text);
+	// @Temporary need to add filename in parser "constructor"
+	parser.code.filename = filename;
 	Parser_Result result = parser_parse(&parser, &lexer);
 
 	if (result.errors.count == 0) {

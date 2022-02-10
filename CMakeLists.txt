@@ -29,6 +29,7 @@ set(SOURCE_FILES
         src/token.h
         src/type.c
         src/type.h
+        src/util.h
         )
 
 add_executable(lang main.c ${SOURCE_FILES})

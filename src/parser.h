@@ -40,6 +40,7 @@
 #include "ast.h"
 #include "stack.h"
 #include "scope.h"
+#include "util.h"
 
 // Utility to pop and element from the parser node stack.
 #define PARSER_POP(dest) stack_pop(&parser->node_stack, dest)
@@ -88,15 +89,18 @@ typedef struct parser_error_report {
  *                       being returned by the returned by the return statement.
  */
 typedef struct parser {
+	// @formatter:off
 	struct {
-		u64 size;
-		char* text;
+		u64         size;
+		char*       text;
+		const char* filename;
 	} code;
 
 	List  errors;
 	Stack node_stack;
 	Stack function_stack;
 	Stack scopes;
+	// @formatter:on
 } Parser;
 
 /**
@@ -112,7 +116,7 @@ typedef struct parser_result {
 #define NEXT_TOKEN(ptrptr) (*(ptrptr))++
 // Checks whether next token in the token list is of node_type __token.
 #define IS_PEEK_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) + 1)->type == (__token))
-#define IS_AT_OF_TYPE(__ptrptr, __offset, __token) (((*(__ptrptr)) + __offset)->type == (__token))
+#define IS_AT_OF_TYPE(__ptrptr, __offset, __token) (((*(__ptrptr)) + (__offset))->type == (__token))
 // Checks whether previous token in the token list is of node_type __token.
 #define IS_PREV_OF_TYPE(__ptrptr, __token) (((*(__ptrptr)) - 1)->type == (__token))
 // Checks whether current token in the token list is of node_type __token.
@@ -167,10 +171,10 @@ void parser_print_source_code_location(Parser* parser, Token* token);
  * Utility method for reporting a new error.
  *
  * @param parser  this
- * @param message Text message that gets converted to Parser_Error_Report struct
+ * @param format  Text format that gets converted to Parser_Error_Report struct
  *                and gets put into the parser.error.reports member.
  */
-void parser_report_error(Parser* parser, Token*, const char* message, ...);
+void parser_report_error(Parser* parser, Token*, const char* format, ...);
 
 /**
  * Entry point of the Parser struct. Responsible for performing parse operations

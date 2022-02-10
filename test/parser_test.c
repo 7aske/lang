@@ -6,6 +6,7 @@ inline static Parser_Result PARSER_TEST_CASE(char* code) {
 	lexer_new(&lexer, code);
 	lexer_lex(&lexer);
 	parser_new(&parser, code);
+	parser.code.filename = __FILE__;
 	printf("CODE: %s\n", code);
 	list_foreach(&lexer.tokens, Token*, {
 		printf("%s\n", token_repr[it->type]);

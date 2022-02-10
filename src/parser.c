@@ -140,9 +140,9 @@ Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 
 	list_foreach(&parser->errors, Parser_Error_Report*, {
 		parser_print_source_code_location(parser, it->source);
-		fprintf(stderr, "%s @ %s:%lu:%lu\n",
+		fprintf(stderr, "%s %s:%lu:%lu\n",
 				it->text,
-				"__FILE__",
+				parser->code.filename,
 				it->source->r0,
 				it->source->c0);
 	})
@@ -325,10 +325,11 @@ inline const Type* resolve_pointer_type(Ast_Node* node) {
 	const Type* type = NULL;
 	if (node->node_type == AST_IDENT) {
 		type = resolve_primitive_type(node->token.name);
-		if (type)
+		if (type) {
 			memcpy(&node->type, type, sizeof(Type));
-		else
-			fprintf(stderr, "Unresolved type for %s\n", node->token.name);
+		} else {
+			REPORT_LINE("Unresolved type %s", node->token.name);
+		}
 	} else if (node->node_type == AST_DEREF || node->node_type == AST_ADDR) {
 		Type new_type;
 		type = resolve_pointer_type(node->right);
@@ -344,13 +345,15 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	Ast_Result type_decl_result;
 	Ast_Result iden_result = parser_create_node(parser, token);
 	if (iden_result.node->node_type != AST_IDENT) {
-		parser_report_error(parser, *token, "Token should be of type `identifier`.");
+		parser_report_error(parser, *token,
+							"Token should be of type `identifier`.");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	}
 
 	if (!IS_CURR_OF_TYPE(token, TOK_COL)) {
-		parser_report_error(parser, *token, "Expected token `:`.");
+		parser_report_error(parser, *token,
+							"Expected token `:`.");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	}
@@ -753,11 +756,11 @@ Ast_Result parse_argument_list(Parser* parser, Token** token) {
 	return argument_list_result;
 }
 
-void parser_report_error(Parser* parser, Token* token, const char* error_text, ...) {
+void parser_report_error(Parser* parser, Token* token, const char* format, ...) {
 	Parser_Error_Report error_report;
 	va_list args;
-	va_start (args, error_text);
-	vsnprintf(error_report.text, PARSER_ERROR_BUFLEN, error_text, args);
+	va_start (args, format);
+	vsnprintf(error_report.text, PARSER_ERROR_BUFLEN, format, args);
 	va_end(args);
 	error_report.source = token;
 	list_push(&parser->errors, &error_report);
