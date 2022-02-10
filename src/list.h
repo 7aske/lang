@@ -60,6 +60,25 @@ void* list_push(List* list, void* src);
  */
 void* list_get(List* list, s64 index);
 
+/**
+ * Same as list_get but does not preform the bounds check.
+ *
+ * @param list this.
+ * @param index Index of the element in the list.
+ * @return Pointer to the element from the list. NULL if out of bounds.
+ */
+void* __list_get_no_bounds_check(List* list, s64 index);
+
+/**
+ * Overwrites the element at position indicated by index.
+ *
+ * @param list  this.
+ * @param index Index of the element to overwrite.
+ * @param data  Pointer to the value of the element.
+ * @return Pointer to the newly inserted element.
+ */
+void* list_set(List* list, s64 index, void* data);
+
 // Utility macro to auto-cast the result to provided __type.
 #define list_get_as(__list, __index, __type) ((__type)list_get(__list, __index))
 #define list_get_as_deref(__list, __index, __type) (*((__type*)list_get(__list, __index)))

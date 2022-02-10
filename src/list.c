@@ -30,6 +30,17 @@ inline void* list_get(List* list, s64 index) {
 	return list->data + (index * list->__list_size);
 }
 
+inline void* __list_get_no_bounds_check(List* list, s64 index) {
+	return list->data + (index * list->__list_size);
+}
+
+void* list_set(List* list, s64 index, void* data) {
+	if (index >= list->capacity) return NULL;
+	void* dest = list->data + (index * list->__list_size);
+	memcpy(dest, data, list->__list_size);
+	return dest;
+}
+
 inline void list_remove(List* list, s64 index) {
 	if (index >= list->__list_size) return;
 	void* dest = list->data + (index * list->__list_size);
