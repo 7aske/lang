@@ -49,15 +49,19 @@ int main(int argc, char** argv) {
 	parser_new(&parser, code_text);
 	Parser_Result result = parser_parse(&parser, &lexer);
 
-	Interpreter interpreter;
-	interpreter_new(&interpreter, &result.nodes, output);
-	interpreter_run(&interpreter);
+	if (result.errors.count == 0) {
+
+		Interpreter interpreter;
+		interpreter_new(&interpreter, &result.nodes, output);
+		interpreter_run(&interpreter);
+
+		fflush(output);
+		// @Temporary
+		system("cc -o out/out out/out.s lib/print.c");
+	}
 
 	free(code_text);
-	fflush(output);
 	fclose(output);
-	// @Temporary
-	system("cc -o out/out out/out.s lib/print.c");
 }
 
 

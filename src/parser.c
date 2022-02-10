@@ -39,7 +39,11 @@ inline void parser_print_source_code_location(Parser* parser, Token* token) {
 			fputc('\n', stderr);
 			break;
 		} else {
-			fputc(*print_start, stderr);
+			if (*print_start == '\t'){
+				fputc(' ', stderr);
+			} else {
+				fputc(*print_start, stderr);
+			}
 			print_start++;
 		}
 	}
@@ -287,19 +291,17 @@ Ast_Result parse_fn_statement(Parser* parser, Token** token) {
 	}
 
 	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
-		parser_report_error(parser, *token, "Missing function body");
+		parser_report_error(parser, *token, "Missing function body.");
 		fn_result.error = AST_ERROR;
 		return fn_result;
 	}
 
 	FUNCTION_PUSH(&fn_result.node);
-	parser_push_scope(parser);
 	Ast_Result fn_body_result = parse_block_node(parser, token);
 	if (fn_body_result.error != AST_NO_ERROR) {
 		fn_result.error = AST_ERROR;
 		return fn_result;
 	}
-	parser_pop_scope(parser, NULL);
 	fn_result.node->right = fn_body_result.node;
 	FUNCTION_POP(NULL);
 
@@ -310,7 +312,8 @@ Ast_Result parse_ret_type_node(Parser* parser, Token** token) {
 	Ast_Result result = parser_create_node(parser, token);
 	Ast_Result ret_type_iden = parser_create_node(parser, token);
 	if (ret_type_iden.error != AST_NO_ERROR) {
-		parser_report_error(parser, *token, "Unable to parse return node_type");
+		parser_report_error(parser, *token,
+							"Unable to parse return type.");
 		result.error = AST_ERROR;
 		return result;
 	}
@@ -341,13 +344,13 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	Ast_Result type_decl_result;
 	Ast_Result iden_result = parser_create_node(parser, token);
 	if (iden_result.node->node_type != AST_IDENT) {
-		parser_report_error(parser, *token, "Token should be of type IDENT");
+		parser_report_error(parser, *token, "Token should be of type `identifier`.");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	}
 
 	if (!IS_CURR_OF_TYPE(token, TOK_COL)) {
-		parser_report_error(parser, *token, "Expected token :");
+		parser_report_error(parser, *token, "Expected token `:`.");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	}
@@ -363,7 +366,8 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	if (type_result.node->node_type != AST_IDENT
 		&& type_result.node->node_type != AST_DEREF
 		&& type_result.node->node_type != AST_ADDR) {
-		parser_report_error(parser, *token, "Token should be of type IDENT");
+		parser_report_error(parser, *token,
+							"Token should be of type `identifier`.");
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	}
@@ -371,8 +375,10 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result.node->left = iden_result.node;
 	type_decl_result.node->right = type_result.node;
 
-	if (parser_is_scope_defined(parser, type_decl_result.node->left->token.name)) {
-		parser_report_error(parser, &type_decl_result.node->left->token, "Duplicate declaration");
+	if (parser_is_defined(parser, type_decl_result.node->left->token.name)) {
+		parser_report_error(parser, &type_decl_result.node->left->token,
+							"Identifier `%s` is already defined.",
+							type_decl_result.node->left->token.name);
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	} else {
@@ -394,7 +400,7 @@ Ast_Result parse_if_statement(Parser* parser, Token** token) {
 
 	// @Temporary
 	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
-		parser_report_error(parser, *token, "Expected token {");
+		parser_report_error(parser, *token, "Expected token `{`.");
 		ast_result.error = AST_ERROR;
 		return ast_result;
 	}
@@ -407,7 +413,7 @@ Ast_Result parse_if_statement(Parser* parser, Token** token) {
 
 		// @Temporary
 		if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
-			parser_report_error(parser, *token, "Expected token {");
+			parser_report_error(parser, *token, "Expected token `{`.");
 			ast_result.error = AST_ERROR;
 			return ast_result;
 		}
@@ -423,12 +429,17 @@ Ast_Result parse_block_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_LBRACE);
 	Ast_Result ast_result = parser_create_node(parser, token);
 
+	parser_push_scope(parser);
 	while (!IS_CURR_OF_TYPE(token, TOK_RBRACE)) {
 		Ast_Result node_result = parse_statement(parser, token);
-		if (node_result.error != AST_NO_ERROR) continue;
+		if (node_result.error != AST_NO_ERROR) {
+			ast_result.error = node_result.error;
+			break;
+		}
 		ast_block_node_add_node(ast_result.node, node_result.node);
 	}
 	NEXT_TOKEN(token); // skip TOK_RBRACE
+	parser_pop_scope(parser, NULL);
 
 	return ast_result;
 }
@@ -470,7 +481,7 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		ast_result.node->precedence = S32_MAX;
 
 		if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
-			parser_report_error(parser, *token, "Expected token )");
+			parser_report_error(parser, *token, "Expected token `)`.");
 			ast_result.error = AST_ERROR;
 			return ast_result;
 		}
@@ -493,14 +504,18 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		ast_result = parse_type_decl_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
 			   && IS_PEEK_OF_TYPE(token, TOK_IDEN)) {
-		parser_report_error(parser, *token, "Unexpected token");
+		parser_report_error(parser, *token,
+							"Unexpected token `%s`.",
+							token_value[(*token)->type]);
 		ast_result.error = AST_ERROR;
 		return ast_result;
 	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
 		return parse_block_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_RBRACE)
 			   || IS_CURR_OF_TYPE(token, TOK_COMMA)) {
-		parser_report_error(parser, *token, "Unexpected token");
+		parser_report_error(parser, *token,
+							"Unexpected token `%s`.",
+							token_value[(*token)->type]);
 		ast_result.error = AST_ERROR;
 		return ast_result;
 	} else if (IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
@@ -512,6 +527,12 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	} else if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 		ast_result = parse_prefix(parser, token);
 		// ast_result = parser_create_node(parser, token);
+	}
+
+	// If there was an error in the first part of the parsing
+	// there is no reason for continuing.
+	if (ast_result.error != AST_NO_ERROR) {
+		return ast_result;
 	}
 
 	// SECOND STEP
@@ -528,17 +549,19 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	} else if (IS_CURR_OF_TYPE(token, TOK_AND) ||
 			   IS_CURR_OF_TYPE(token, TOK_OR)) {
 		ast_result = parse_boolean_node(parser, token);
-	} else if (IS_CURR_OF_TYPE(token, TOK_EQ) ||
-			   IS_CURR_OF_TYPE(token, TOK_NE) ||
-			   IS_CURR_OF_TYPE(token, TOK_GT) ||
-			   IS_CURR_OF_TYPE(token, TOK_LT) ||
-			   IS_CURR_OF_TYPE(token, TOK_GE) ||
-			   IS_CURR_OF_TYPE(token, TOK_LE) ||
-			   IS_CURR_OF_TYPE(token, TOK_ADD) ||
-			   IS_CURR_OF_TYPE(token, TOK_SUB) ||
+		// @formatter:off
+	} else if (IS_CURR_OF_TYPE(token, TOK_EQ)   ||
+			   IS_CURR_OF_TYPE(token, TOK_NE)   ||
+			   IS_CURR_OF_TYPE(token, TOK_GT)   ||
+			   IS_CURR_OF_TYPE(token, TOK_LT)   ||
+			   IS_CURR_OF_TYPE(token, TOK_GE)   ||
+			   IS_CURR_OF_TYPE(token, TOK_LE)   ||
+			   IS_CURR_OF_TYPE(token, TOK_ADD)  ||
+			   IS_CURR_OF_TYPE(token, TOK_SUB)  ||
 			   IS_CURR_OF_TYPE(token, TOK_STAR) ||
-			   IS_CURR_OF_TYPE(token, TOK_DIV) ||
+			   IS_CURR_OF_TYPE(token, TOK_DIV)  ||
 			   IS_CURR_OF_TYPE(token, TOK_MOD)) {
+		// @formatter:on
 		// All of these are for now parsed as a generic binary operation.
 		ast_result = parse_binary_operation_node(parser, token);
 	}
@@ -550,7 +573,7 @@ Ast_Result parse_iter_node(Parser* parser, Token** token) {
 	Ast_Result iter_node;
 	Ast_Result left_ast_result;
 	if (stack_is_empty(&parser->node_stack)) {
-		parser_report_error(parser, *token, "Unable to parse iterator");
+		parser_report_error(parser, *token, "Unable to parse iterator.");
 		iter_node.error = AST_ERROR;
 		return iter_node;
 	} else {
@@ -576,7 +599,7 @@ Ast_Result parse_in_node(Parser* parser, Token** token) {
 	Ast_Result in_node;
 	Ast_Result left_ast_result;
 	if (stack_is_empty(&parser->node_stack)) {
-		parser_report_error(parser, *token, "Unable to parse in node");
+		parser_report_error(parser, *token, "Unable to parse `in` node.");
 		in_node.error = AST_ERROR;
 		return in_node;
 	} else {
@@ -602,7 +625,7 @@ Ast_Result parse_function_call(Parser* parser, Token** token) {
 	// @Incomplete parse TOK_DOT
 	Ast_Result left_ast_result;
 	if (stack_is_empty(&parser->node_stack)) {
-		parser_report_error(parser, *token, "Unable to parse function call");
+		parser_report_error(parser, *token, "Unable to parse function call.");
 		result.error = AST_ERROR;
 		return result;
 	} else {
@@ -618,7 +641,7 @@ Ast_Result parse_function_call(Parser* parser, Token** token) {
 	result.node->left = left_ast_result.node;
 
 	if (!IS_CURR_OF_TYPE(token, TOK_LPAREN)) {
-		parser_report_error(parser, *token, "Expected token (");
+		parser_report_error(parser, *token, "Expected token `(`.");
 		result.error = AST_ERROR;
 		return result;
 	} else {
@@ -655,6 +678,24 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 
 	result.node->left = left_ast_result.node;
 	result.node->right = right_ast_result.node;
+
+	if (result.node->left->token.type == TOK_IDEN
+		&& !parser_is_defined(parser, result.node->left->token.name)) {
+		parser_report_error(parser, &result.node->left->token,
+							"Undeclared identifier `%s`.",
+							result.node->left->token.name);
+		result.error = AST_ERROR;
+		return result;
+	}
+
+	if (result.node->right->token.type == TOK_IDEN
+		&& !parser_is_defined(parser, result.node->right->token.name)) {
+		parser_report_error(parser, &result.node->left->token,
+							"Undeclared identifier `%s`.",
+							result.node->right->token.name);
+		result.error = AST_ERROR;
+		return result;
+	}
 
 	if (result.node->left != NULL &&
 		result.node->left->node_type == AST_IDENT) {
@@ -712,9 +753,12 @@ Ast_Result parse_argument_list(Parser* parser, Token** token) {
 	return argument_list_result;
 }
 
-inline void parser_report_error(Parser* parser, Token* token, char* error_text) {
+void parser_report_error(Parser* parser, Token* token, const char* error_text, ...) {
 	Parser_Error_Report error_report;
-	error_report.text = error_text;
+	va_list args;
+	va_start (args, error_text);
+	vsnprintf(error_report.text, PARSER_ERROR_BUFLEN, error_text, args);
+	va_end(args);
 	error_report.source = token;
 	list_push(&parser->errors, &error_report);
 }
@@ -819,10 +863,14 @@ inline bool parser_pop_scope(Parser* parser, Scope* dest) {
 	return stack_pop(&parser->scopes, dest);
 }
 
-bool parser_is_scope_defined(Parser* parser, const char* var_name) {
-	list_foreach(&parser_peek_scope(parser)->variables, char*, {
-		if (strcmp(it, var_name) == 0) return true;
-	})
+bool parser_is_defined(Parser* parser, const char* var_name) {
+	for (s32 i = (s32)parser->scopes.count - 1; i >= 0; --i) {
+		Scope* scope = (Scope*)(parser->scopes.base + (i * parser->scopes.size));
+		for(int j = 0; j < scope->variables.count; ++j) {
+			char* var = (char*) list_get(&scope->variables, j);
+			if (strcmp(var, var_name) == 0) return true;
+		}
+	}
 	return false;
 }
 

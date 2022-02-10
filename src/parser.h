@@ -34,6 +34,7 @@
 
 #ifndef LANG_PARSER_H
 #define LANG_PARSER_H
+#include <stdarg.h>
 
 #include "lexer.h"
 #include "ast.h"
@@ -51,6 +52,8 @@
 
 // Utility to push an element to the function node stack.
 #define FUNCTION_PUSH(src) stack_push(&parser->function_stack, src)
+
+#define PARSER_ERROR_BUFLEN 256
 /**
  * Struct representing a parser error.
  *
@@ -58,8 +61,7 @@
  * @param text   Heap-allocated error text for the given error.
  */
 typedef struct parser_error_report {
-	// @Alloc
-	char* text;
+	char   text[PARSER_ERROR_BUFLEN];
 	Token* source;
 } Parser_Error_Report;
 
@@ -168,7 +170,7 @@ void parser_print_source_code_location(Parser* parser, Token* token);
  * @param message Text message that gets converted to Parser_Error_Report struct
  *                and gets put into the parser.error.reports member.
  */
-void parser_report_error(Parser* parser, Token*, char* message);
+void parser_report_error(Parser* parser, Token*, const char* message, ...);
 
 /**
  * Entry point of the Parser struct. Responsible for performing parse operations
@@ -390,7 +392,7 @@ Ast_Result parse_prefix(Parser* parser, Token** token);
 Scope* parser_peek_scope(Parser* parser);
 Scope* parser_push_scope(Parser* parser);
 bool   parser_pop_scope(Parser* parser, Scope* dest);
-bool   parser_is_scope_defined(Parser* parser, const char* var_name);
+bool   parser_is_defined(Parser* parser, const char* var_name);
 
 const Type* resolve_pointer_type(Ast_Node* node);
 

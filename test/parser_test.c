@@ -31,8 +31,8 @@ int main(void) {
 	assert(list_get_as_deref(&root->right->nodes, 0, Ast_Node*)->node_type == AST_LITERAL);
 
 
-	result = PARSER_TEST_CASE("if a == true {b=2;} else {b=3;}");
-	root = *(Ast_Node**) list_get(&result.nodes, 0);
+	result = PARSER_TEST_CASE("b:s32=0; if a == true {b=2;} else {b=3;}");
+	root = *(Ast_Node**) list_get(&result.nodes, 1);
 	assert(root->node_type == AST_IF);
 	assert(root->middle->node_type == AST_EQUALITY);
 	assert(root->middle->left->node_type == AST_IDENT);
@@ -45,17 +45,18 @@ int main(void) {
 	result = PARSER_TEST_CASE("a == true { function; }}");
 	assert(result.errors.count >= 1);
 
-	result = PARSER_TEST_CASE("if a == b || b > c && c < d {"
-							  "  print(a,b,c);"
-							  "  print(\"Hello world!\");"
-							  "  b = `David je najjaci!`;"
-							  "} else {"
-							  "  a = 42;"
-							  "  b = 42;"
-							  "  c = 42;"
-							  "  d = 42;"
+	result = PARSER_TEST_CASE("a:s32=0;b:s32=0;c:s32=0;d:s32=0;\n"
+							  "if a == b || b > c && c < d {\n"
+							  "  print(a,b,c);\n"
+							  "  print(\"Hello world!\");\n"
+							  "  b = `David je najjaci!`;\n"
+							  "} else {\n"
+							  "  a = 42;\n"
+							  "  b = 42;\n"
+							  "  c = 42;\n"
+							  "  d = 42;\n"
 							  "}");
-	root = *(Ast_Node**) list_get(&result.nodes, 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 4);
 	assert(result.errors.count == 0);
 	assert(root->node_type == AST_IF);
 	assert(root->middle->node_type == AST_BOOLEAN);
@@ -100,16 +101,17 @@ int main(void) {
 	assert(root->left->node_type == AST_TYPE_DECL);
 	assert(root->right->node_type == AST_LITERAL);
 
-	result = PARSER_TEST_CASE("a = 123;");
+	result = PARSER_TEST_CASE("a:s32 = 123;");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(result.errors.count == 0);
 	assert(root->token.type == TOK_ASSN);
-	assert(root->left->node_type == AST_LVIDENT);
+	assert(root->left->node_type == AST_TYPE_DECL);
+	assert(root->left->left->node_type == AST_LVIDENT);
 	assert(root->right->node_type == AST_LITERAL);
 
-	result = PARSER_TEST_CASE("a = (a + b) - 1; a = a + b;");
-	root = *(Ast_Node**) list_get(&result.nodes, 0);
+	result = PARSER_TEST_CASE("a:s32=0;b:s32=0;a = (a + b) - 1; a = a + b;");
 	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 2);
 	assert(root->token.type == TOK_ASSN);
 	assert(root->left->node_type == AST_LVIDENT);
 	assert(root->right->node_type == AST_ARITHMETIC);
@@ -117,7 +119,7 @@ int main(void) {
 	assert(root->right->left->node_type == AST_ARITHMETIC);
 	assert(root->right->left->token.type == TOK_ADD);
 	assert(root->right->right->node_type == AST_LITERAL);
-	root = *(Ast_Node**) list_get(&result.nodes, 1);
+	root = *(Ast_Node**) list_get(&result.nodes, 3);
 	assert(root->token.type == TOK_ASSN);
 	assert(root->left->node_type == AST_LVIDENT);
 	assert(root->right->node_type == AST_ARITHMETIC);
@@ -178,7 +180,7 @@ int main(void) {
 	assert(root->right->node_type == AST_LITERAL);
 
 	result = PARSER_TEST_CASE("fn write(file: File, count: u64, byte: u32) -> void {"
-							  "a:s32 = 1; a:s32 = 1;"
+							  "a:s32=1;a:s32=1;"
 							  "}");
 	assert(result.errors.count == 1);
 }
