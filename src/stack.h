@@ -45,7 +45,7 @@ void  stack_new(Stack* stack, u64 size);
  * @param stack this
  * @param data  Element to be pushed to the stack.
  */
-void  stack_push(Stack* stack, void* data);
+void* stack_push(Stack* stack, void* data);
 
 /**
  * Copies one element from the stack to the pointer specified by dest

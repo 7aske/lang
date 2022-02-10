@@ -38,6 +38,7 @@
 #include "lexer.h"
 #include "ast.h"
 #include "stack.h"
+#include "scope.h"
 
 // Utility to pop and element from the parser node stack.
 #define PARSER_POP(dest) stack_pop(&parser->node_stack, dest)
@@ -93,6 +94,7 @@ typedef struct parser {
 	List  errors;
 	Stack node_stack;
 	Stack function_stack;
+	Stack scopes;
 } Parser;
 
 /**
@@ -385,6 +387,10 @@ Ast_Result parse_return_statement(Parser* parser, Token** token);
  */
 Ast_Result parse_prefix(Parser* parser, Token** token);
 
+Scope* parser_peek_scope(Parser* parser);
+Scope* parser_push_scope(Parser* parser);
+bool   parser_pop_scope(Parser* parser, Scope* dest);
+bool   parser_is_scope_defined(Parser* parser, const char* var_name);
 
 const Type* resolve_pointer_type(Ast_Node* node);
 

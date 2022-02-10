@@ -4,29 +4,31 @@ project(lang C)
 set(CMAKE_C_STANDARD 11)
 
 set(SOURCE_FILES
-        src/string_buffer.c
-        src/string_buffer.h
-        src/lexer.c
-        src/lexer.h
-        src/token.c
-        src/token.h
-        src/parser.c
-        src/parser.h
         src/ast.c
         src/ast.h
-        src/stack.c
-        src/stack.h
-        src/list.c
-        src/list.h
-        src/linked_list.c
-        src/linked_list.h
-        src/type.c
-        src/type.h
-        src/map.c
-        src/map.h
         src/interpreter.c
         src/interpreter.h
+        src/lexer.c
+        src/lexer.h
+        src/linked_list.c
+        src/linked_list.h
+        src/list.c
+        src/list.h
+        src/map.c
+        src/map.h
+        src/parser.c
+        src/parser.h
+        src/scope.c
+        src/scope.h
+        src/stack.c
+        src/stack.h
         src/stdtypes.h
+        src/string_buffer.c
+        src/string_buffer.h
+        src/token.c
+        src/token.h
+        src/type.c
+        src/type.h
         )
 
 add_executable(lang main.c ${SOURCE_FILES})

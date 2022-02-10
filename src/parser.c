@@ -121,6 +121,9 @@ Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 	Token* parsed_tokens = lexer->tokens.data;
 	Token* end = ((Token*) lexer->tokens.data) + lexer->tokens.count;
 
+	// Initial scope
+	parser_push_scope(parser);
+
 	while (parsed_tokens <= end) {
 		Ast_Result ast_result = parse_statement(parser, &parsed_tokens);
 
@@ -243,6 +246,7 @@ Ast_Result parse_for_statement(Parser* parser, Token** token) {
 
 Ast_Result parse_fn_statement(Parser* parser, Token** token) {
 	assert(IS_CURR_OF_TYPE(token, TOK_FN));
+
 	Ast_Result fn_result = parser_create_node(parser, token);
 	Ast_Result left_result = parser_create_node(parser, token);
 	if (left_result.node->node_type != AST_IDENT) {
@@ -288,11 +292,13 @@ Ast_Result parse_fn_statement(Parser* parser, Token** token) {
 	}
 
 	FUNCTION_PUSH(&fn_result.node);
+	parser_push_scope(parser);
 	Ast_Result fn_body_result = parse_block_node(parser, token);
 	if (fn_body_result.error != AST_NO_ERROR) {
 		fn_result.error = AST_ERROR;
 		return fn_result;
 	}
+	parser_pop_scope(parser, NULL);
 	fn_result.node->right = fn_body_result.node;
 	FUNCTION_POP(NULL);
 
@@ -363,6 +369,15 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 
 	type_decl_result.node->left = iden_result.node;
 	type_decl_result.node->right = type_result.node;
+
+	if (parser_is_scope_defined(parser, type_decl_result.node->left->token.string_value.data)) {
+		parser_report_error(parser, &type_decl_result.node->left->token, "Duplicate declaration");
+		type_decl_result.error = AST_ERROR;
+		return type_decl_result;
+	} else {
+		list_push(&parser_peek_scope(parser)->variables,
+				  type_decl_result.node->left->token.string_value.data);
+	}
 
 	PARSER_PUSH(&type_decl_result);
 
@@ -709,6 +724,7 @@ inline void parser_new(Parser* parser, char* code) {
 	list_new(&parser->errors, sizeof(Parser_Error_Report));
 	stack_new(&parser->node_stack, sizeof(Ast_Result));
 	stack_new(&parser->function_stack, sizeof(Ast_Node*));
+	stack_new(&parser->scopes, sizeof(Scope));
 }
 
 inline void parser_free(Parser* parser) {
@@ -787,5 +803,27 @@ Ast_Result parser_create_node_no_inc(Parser* parser, Token* token) {
 	stack_push(&parser->node_stack, &ast_result);
 	return ast_result;
 }
+
+inline Scope* parser_peek_scope(Parser* parser) {
+	return (Scope*) stack_peek(&parser->scopes);
+}
+
+inline Scope* parser_push_scope(Parser* parser) {
+	Scope scope = {0};
+	list_new(&scope.variables, sizeof(char*));
+	return (Scope*) stack_push(&parser->scopes, &scope);
+}
+
+inline bool parser_pop_scope(Parser* parser, Scope* dest) {
+	return stack_pop(&parser->scopes, dest);
+}
+
+bool parser_is_scope_defined(Parser* parser, const char* var_name) {
+	list_foreach(&parser_peek_scope(parser)->variables, char*, {
+		if (strcmp(it, var_name) == 0) return true;
+	})
+	return false;
+}
+
 
 #pragma clang diagnostic pop

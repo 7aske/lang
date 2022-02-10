@@ -126,8 +126,8 @@ void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 
 	dest->type = token;
 	// @Incomplete
 	if (token == TOK_LIT_STR || token == TOK_IDEN || token == TOK_LIT_CHR) {
-		dest->string_value.size = code_size;
-		dest->string_value.data = (char*) calloc(code_size + 1, sizeof(char));
+		dest->string_value.size = 0;
+		dest->string_value.data = NULL;
 	} else if (token == TOK_LIT_FLT) {
 		dest->float64_value = 0;
 	} else if (token == TOK_LIT_INT || token == TOK_FALSE) {

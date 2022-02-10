@@ -21,10 +21,11 @@ inline void stack_new(Stack* stack, u64 size) {
 	stack->base = stack->data;
 }
 
-inline void stack_push(Stack* stack, void* data) {
+inline void* stack_push(Stack* stack, void* data) {
 	// Before every push to the stack we verify that it has enough space.
 	stack_realloc(stack);
 	memcpy(stack->data + (stack->count++ * stack->size), data, stack->size);
+	return stack_peek(stack);
 }
 
 inline bool stack_pop(Stack* stack, void* dest) {

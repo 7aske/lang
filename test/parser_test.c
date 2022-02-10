@@ -176,4 +176,9 @@ int main(void) {
 	assert(root->node_type == AST_ASSIGN);
 	assert(root->left->node_type == AST_DEREF);
 	assert(root->right->node_type == AST_LITERAL);
+
+	result = PARSER_TEST_CASE("fn write(file: File, count: u64, byte: u32) -> void {"
+							  "a:s32 = 1; a:s32 = 1;"
+							  "}");
+	assert(result.errors.count == 1);
 }
