@@ -7,61 +7,6 @@
 
 #include "parser.h"
 
-inline void parser_print_source_code_location(Parser* parser, Token* token) {
-	u32 start_col = token->c0;
-	u32 start_row = token->r0;
-	u32 end_col = token->c1;
-
-	char* code = parser->code.text;
-	char* print_start = NULL;
-
-	while (1) {
-
-		if (*code == '\0')
-			start_row--;
-
-		if (*code == '\n')
-			start_row--;
-
-		if (start_row == 1)
-			break;
-
-		code++;
-	}
-
-	print_start = code;
-
-	if (*print_start == '\n')
-		print_start++;
-
-	while (*print_start != '\n') {
-		if (*print_start == '\0') {
-			fputc('\n', stderr);
-			break;
-		} else {
-			if (*print_start == '\t'){
-				fputc(' ', stderr);
-			} else {
-				fputc(*print_start, stderr);
-			}
-			print_start++;
-		}
-	}
-
-	if (*print_start == '\n')
-		fputc('\n', stderr);
-
-	PAD_TO(start_col - 1, " ")
-	PAD_TO(end_col - start_col, "^")
-	fputc('\n', stderr);
-	PAD_TO(start_col - 1, " ")
-	fputc('|', stderr);
-	fputc('\n', stderr);
-	PAD_TO(start_col - 1, "─")
-	fputs("┘", stderr);
-	fputc('\n', stderr);
-}
-
 Ast_Result parse_boolean_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_AND || (*token)->type == TOK_OR);
 	Ast_Result left_ast_result;
@@ -139,7 +84,7 @@ Parser_Result parser_parse(Parser* parser, Lexer* lexer) {
 	}
 
 	list_foreach(&parser->errors, Parser_Error_Report*, {
-		parser_print_source_code_location(parser, it->source);
+		print_token_source_code_location(parser->code.text, it->source);
 		fprintf(stderr, "%s %s:%lu:%lu\n",
 				it->text,
 				parser->code.filename,

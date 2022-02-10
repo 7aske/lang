@@ -10,6 +10,7 @@
 #include "token.h"
 #include "ast.h"
 #include "type.h"
+#include "util.h"
 
 #define VM_REG_SIZE 4
 
@@ -27,6 +28,8 @@ typedef struct symbol {
 
 typedef struct interpreter {
 	List  nodes;
+	const char* code;
+	const char* input_filename;
 	FILE* output;
 	int   freereg[VM_REG_SIZE];
 	char* registers[VM_REG_SIZE];

@@ -27,26 +27,35 @@ typedef struct type {
 	u32 size;
 	u32 flags;
 	u32 ptr_size;
+	struct type* type;
 } Type;
 
-
+// Base type struct. Technically not a primitive.
+static Type type_type =
+	{
+		.name="type",
+		.size=TYPE_LONG_SIZE,
+		.flags=TYPE_PRIMITIVE | TYPE_IMMUTABLE,
+		.ptr_size=TYPE_LONG_SIZE,
+		.type=&type_type
+	};
 // @Optimization this calls to be a hash table
 // @formatter:off
 static const Type primitive_types[] = {
-	{.name=NULL,   .size=0,               .flags=TYPE_PRIMITIVE|TYPE_IMMUTABLE},
-	{.name="void", .size=0,               .flags=TYPE_PRIMITIVE|TYPE_IMMUTABLE},
-	{.name="bool", .size=TYPE_BOOL_SIZE,  .flags=TYPE_PRIMITIVE               },
-	{.name="int",  .size=TYPE_INT_SIZE,   .flags=TYPE_PRIMITIVE               },
-	{.name="s8",   .size=TYPE_CHAR_SIZE,  .flags=TYPE_PRIMITIVE               },
-	{.name="s16",  .size=TYPE_SHORT_SIZE, .flags=TYPE_PRIMITIVE               },
-	{.name="s32",  .size=TYPE_INT_SIZE,   .flags=TYPE_PRIMITIVE               },
-	{.name="s64",  .size=TYPE_LONG_SIZE,  .flags=TYPE_PRIMITIVE               },
-	{.name="u8",   .size=TYPE_CHAR_SIZE,  .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
-	{.name="u16",  .size=TYPE_SHORT_SIZE, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
-	{.name="u32",  .size=TYPE_INT_SIZE,   .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
-	{.name="u64",  .size=TYPE_LONG_SIZE,  .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	{.name=NULL,   .size=0,               .type=&type_type, .flags=TYPE_PRIMITIVE|TYPE_IMMUTABLE},
+	{.name="void", .size=0,               .type=&type_type, .flags=TYPE_PRIMITIVE|TYPE_IMMUTABLE},
+	{.name="bool", .size=TYPE_BOOL_SIZE,  .type=&type_type, .flags=TYPE_PRIMITIVE               },
+	{.name="int",  .size=TYPE_INT_SIZE,   .type=&type_type, .flags=TYPE_PRIMITIVE               },
+	{.name="s8",   .size=TYPE_CHAR_SIZE,  .type=&type_type, .flags=TYPE_PRIMITIVE               },
+	{.name="s16",  .size=TYPE_SHORT_SIZE, .type=&type_type, .flags=TYPE_PRIMITIVE               },
+	{.name="s32",  .size=TYPE_INT_SIZE,   .type=&type_type, .flags=TYPE_PRIMITIVE               },
+	{.name="s64",  .size=TYPE_LONG_SIZE,  .type=&type_type, .flags=TYPE_PRIMITIVE               },
+	{.name="u8",   .size=TYPE_CHAR_SIZE,  .type=&type_type, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	{.name="u16",  .size=TYPE_SHORT_SIZE, .type=&type_type, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	{.name="u32",  .size=TYPE_INT_SIZE,   .type=&type_type, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
+	{.name="u64",  .size=TYPE_LONG_SIZE,  .type=&type_type, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED },
 	// @ToDo float64
-	{.name="float",.size=TYPE_LONG_SIZE,  .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED|TYPE_DECIMAL },
+	{.name="float",.size=TYPE_LONG_SIZE,  .type=&type_type, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED|TYPE_DECIMAL },
 };
 // @formatter:on
 

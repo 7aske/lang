@@ -341,6 +341,15 @@ void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 	interpreter->output = output;
 	interpreter->label = 0;
 	list_new(&interpreter->symbols, sizeof(Symbol));
+	// for (int i = 1; i < PRIMITIVE_TYPES_LEN; ++i) {
+	// 	Symbol symbol = {
+	// 		.name = primitive_types[i].name,
+	// 		.type = primitive_types[i],
+	// 		.end_label = 0
+	// 	};
+	// 	list_push(&interpreter->symbols, &symbol);
+	// 	cg_globsym(interpreter, symbol.name, *symbol.type.type);
+	// }
 }
 
 s32 interpreter_decode_if(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
@@ -575,7 +584,15 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			return cg_storglob(interpreter, reg, name);
 		case AST_IDENT:
 			name = node->token.name;
-			if (findglob(interpreter, name) == -1) return -1;
+			if (findglob(interpreter, name) == -1) {
+				print_token_source_code_location(interpreter->code, &node->token);
+				fprintf(stderr, "Possible undefined reference to `%s`. %s:%lu:%lu\n",
+						name,
+						interpreter->input_filename,
+						node->token.r0,
+						node->token.c0);
+				return -1;
+			}
 			return cg_loadglob(interpreter, name);
 		case AST_ASSIGN:
 			freeall_registers(interpreter);

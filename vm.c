@@ -55,6 +55,9 @@ int main(int argc, char** argv) {
 
 		Interpreter interpreter;
 		interpreter_new(&interpreter, &result.nodes, output);
+		// @Temporary need to add these in constructor
+		interpreter.code = parser.code.text;
+		interpreter.input_filename = filename;
 		interpreter_run(&interpreter);
 
 		fflush(output);

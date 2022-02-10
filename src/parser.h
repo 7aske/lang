@@ -122,9 +122,6 @@ typedef struct parser_result {
 // Checks whether current token in the token list is of node_type __token.
 #define IS_CURR_OF_TYPE(__ptrptr, __token) ((*(__ptrptr))->type == (__token))
 // Prints __end number of __str to stderr.
-#define PAD_TO(__end, __str) for (int _i = 0; _i < (__end); _i++) {\
-fputs(__str, stderr);\
-}
 
 /**
  * Enum representing the possible outcomes of parsing an AST node.
@@ -157,15 +154,6 @@ typedef struct ast_result {
  *             error messages.
  */
 void parser_new(Parser* dest, char* code);
-
-/**
- * Utility function for printing the line of the source code where there error
- * caused by token was originated.
- *
- * @param parser this
- * @param token  Source of the error that should be displayed.
- */
-void parser_print_source_code_location(Parser* parser, Token* token);
 
 /**
  * Utility method for reporting a new error.

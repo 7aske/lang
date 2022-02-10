@@ -22,6 +22,7 @@
 #include "stdtypes.h"
 #include "string_buffer.h"
 #include "list.h"
+#include "util.h"
 
 
 /**
@@ -83,11 +84,6 @@ typedef struct lexer {
 	List tokens;
 	List errors;
 } Lexer;
-
-// @CopyPaste
-#define PAD_TO(__end, __str) for (int _i = 0; _i < (__end); _i++) {\
-fputs(__str, stderr);\
-}
 
 // Returns the next token without incrementing the pointer.
 #define PEEK_NEXT(ptr) (*((ptr) + 1))

@@ -265,7 +265,7 @@ u32 lexer_lex(Lexer* lexer) {
 
 	// @Temporary
 	list_foreach(&lexer->errors, Lexer_Error_Report*, {
-		lexer_print_source_code_location(lexer, it);
+		print_source_code_location(lexer->code.text, it->col, it->row, it->col + 1);
 		fprintf(stderr, "%s @ %s:%lu:%lu\n", it->text, "__FILE__", it->row,
 				it->col);
 	})
@@ -297,50 +297,4 @@ inline void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32
 void lexer_free(Lexer* lexer) {
 	list_free(&lexer->tokens);
 	list_free(&lexer->errors);
-}
-
-// @CopyPaste
-void lexer_print_source_code_location(Lexer* lexer, Lexer_Error_Report* report) {
-	u32 start_col = report->col;
-	u32 start_row = report->row;
-	u32 end_col = report->col + 1;
-
-	char* code = lexer->code.text;
-	char* print_start = NULL;
-
-	while (1) {
-
-		if (*code == '\0')
-			start_row--;
-
-		if (*code == '\n')
-			start_row--;
-
-		if (start_row == 1)
-			break;
-
-		code++;
-	}
-
-	print_start = code;
-
-	while (*print_start != '\n') {
-		if (*print_start == '\0') {
-			fputc('\n', stderr);
-			break;
-		} else {
-			fputc(*print_start, stderr);
-			print_start++;
-		}
-	}
-
-	PAD_TO(start_col - 1, " ")
-	PAD_TO(end_col - start_col, "^")
-	fputc('\n', stderr);
-	PAD_TO(start_col - 1, " ")
-	fputc('|', stderr);
-	fputc('\n', stderr);
-	PAD_TO(start_col - 1, "─")
-	fputs("┘", stderr);
-	fputc('\n', stderr);
 }
