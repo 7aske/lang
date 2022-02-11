@@ -135,14 +135,20 @@ Ast_Result parse_statement(Parser* parser, Token** lexer_result) {
 Ast_Result parse_return_statement(Parser* parser, Token** token) {
 	Ast_Result result = parser_create_node(parser, token);
 	Ast_Result right_result = parse_expression(parser, token);
-	Ast_Node* function;
-	FUNCTION_POP(&function);
 	if (right_result.error != AST_NO_ERROR) {
 		result.error = right_result.error;
 		return result;
 	}
+	if (!IS_CURR_OF_TYPE(token, TOK_SCOL)) {
+		parser_report_error(parser, *(token - 1), "Missing `;`.");
+		result.error = AST_ERROR;
+		return result;
+	} else {
+		NEXT_TOKEN(token);
+	}
+
 	result.node->right = right_result.node;
-	result.node->middle = function;
+	result.node->middle = *(Ast_Node**)FUNCTION_PEEK();
 
 	return result;
 }
@@ -306,6 +312,10 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result = parser_create_node(parser, token);
 
 	Ast_Result type_result = parse_prefix(parser, token);
+	if (type_result.error != AST_NO_ERROR) {
+		type_decl_result.error = AST_ERROR;
+		return type_decl_result;
+	}
 
 	(void) resolve_pointer_type(type_result.node);
 	// Copy the resolved type to the identifier
@@ -330,8 +340,9 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	} else {
-		list_push(&parser_peek_scope(parser)->variables,
-				  type_decl_result.node->left->token.name);
+		map_put(&parser_peek_scope(parser)->variables,
+				  type_decl_result.node->left->token.name,
+				  &type_decl_result.node->right->type);
 	}
 
 	PARSER_PUSH(&type_decl_result);
@@ -344,6 +355,11 @@ Ast_Result parse_if_statement(Parser* parser, Token** token) {
 	Ast_Result ast_result = parser_create_node(parser, token);
 
 	Ast_Result middle_ast_result = parse_expression(parser, token);
+	if (middle_ast_result.error != AST_NO_ERROR) {
+		ast_result.error = AST_ERROR;
+		return ast_result;
+	}
+
 	ast_result.node->middle = middle_ast_result.node;
 
 	// @Temporary
@@ -535,7 +551,11 @@ Ast_Result parse_iter_node(Parser* parser, Token** token) {
 	} else {
 		PARSER_POP(&left_ast_result);
 	}
-	iter_node = parser_create_node(parser, token);
+	iter_node = parser_create_node_no_inc(parser, NEXT_TOKEN(token));
+	if (iter_node.error != AST_NO_ERROR) {
+		iter_node.error = iter_node.error;
+		return iter_node;
+	}
 
 	iter_node.node->left = left_ast_result.node;
 
@@ -826,7 +846,7 @@ inline Scope* parser_peek_scope(Parser* parser) {
 
 inline Scope* parser_push_scope(Parser* parser) {
 	Scope scope = {0};
-	list_new(&scope.variables, sizeof(char*));
+	map_new(&scope.variables, sizeof(char*));
 	return (Scope*) stack_push(&parser->scopes, &scope);
 }
 
@@ -837,9 +857,8 @@ inline bool parser_pop_scope(Parser* parser, Scope* dest) {
 bool parser_is_defined(Parser* parser, const char* var_name) {
 	for (s32 i = (s32) parser->scopes.count - 1; i >= 0; --i) {
 		Scope* scope = (Scope*) (parser->scopes.base + (i * parser->scopes.size));
-		for (int j = 0; j < scope->variables.count; ++j) {
-			char* var = (char*) list_get(&scope->variables, j);
-			if (strcmp(var, var_name) == 0) return true;
+		if (map_get(&scope->variables, var_name) != NULL) {
+			return true;
 		}
 	}
 	// If the variable wasn't found. Check if there's a type defined

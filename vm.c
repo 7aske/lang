@@ -5,7 +5,6 @@
 #include "src/parser.h"
 #include "src/interpreter.h"
 
-
 int main(int argc, char** argv) {
 	char* filename = argv[1];
 	char* code_text = NULL;

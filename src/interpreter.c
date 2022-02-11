@@ -6,7 +6,11 @@
 
 #include "interpreter.h"
 
-const char* resolve_pointer_var_name(Ast_Node* node);
+#define VERIFY_REGISTERS(__func, __r1, __r2) \
+if ((__r1 < 0 || __r1 > VM_REG_SIZE) || (__r2 < 0 || __r2 > VM_REG_SIZE)) {  \
+REPORT_LINE();\
+fatalf("Invalid registers `%d`,`%d` in `%s`\n", r1, r2, __func);\
+}
 
 // Set all registers as available
 void freeall_registers(Interpreter* interpreter) {
@@ -85,6 +89,7 @@ s32 cg_add(Interpreter* interpreter, s32 r1, s32 r2) {
 // Subtract the second register from the first and
 // return the number of the register with the result
 s32 cg_sub(Interpreter* interpreter, s32 r1, s32 r2) {
+	VERIFY_REGISTERS(__FUNCTION__, r1, r2);
 	fprintf(interpreter->output, "\t# cg_sub\n");
 	fprintf(interpreter->output, "\tsubq\t%s, %s\n",
 			interpreter->registers[r2],
@@ -96,6 +101,7 @@ s32 cg_sub(Interpreter* interpreter, s32 r1, s32 r2) {
 // Multiply two registers together and return
 // the number of the register with the result
 s32 cg_mul(Interpreter* interpreter, s32 r1, s32 r2) {
+	VERIFY_REGISTERS(__FUNCTION__ , r1, r2);
 	fprintf(interpreter->output, "\t# cg_mul\n");
 	fprintf(interpreter->output, "\timulq\t%s, %s\n",
 			interpreter->registers[r1],
@@ -180,7 +186,7 @@ s32 addglob(Interpreter* interpreter, const char* name, Type type) {
 // Generate a global symbol
 void cg_globsym(Interpreter* interpreter, const char* name, Type type) {
 	s32 size = (type.size > TYPE_CHAR_SIZE ? TYPE_LONG_SIZE : TYPE_CHAR_SIZE);
-	fprintf(interpreter->output, "\t# cg_globsym\n");
+	fprintf(interpreter->output, "\t# cg_globsym %s\n", name);
 	fprintf(interpreter->output, "\t.comm\t%s,%ld,%ld\n",
 			name, size, size);
 }
@@ -496,10 +502,10 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 
 	if (node->right) {
 		// Do not parse the right size of the type declaration
-		if (node->node_type != AST_TYPE_DECL || node->right->node_type != AST_DEREF)
-			rightreg = interpreter_decode(interpreter, node->right, -1, node);
-		else
+		if (node->node_type == AST_TYPE_DECL || node->right->node_type == AST_DEREF)
 			rightreg = reg;
+		else
+			rightreg = interpreter_decode(interpreter, node->right, -1, node);
 	}
 
 	if (node->left) {
@@ -585,14 +591,19 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		case AST_IDENT:
 			name = node->token.name;
 			if (findglob(interpreter, name) == -1) {
-				COLOR(TEXT_YELLOW);
-				fprintf(stderr, "WARNING: Possible undefined reference to `%s`. %s:%lu:%lu\n",
-						name,
-						interpreter->input_filename,
-						node->token.r0,
-						node->token.c0);
-				CLEAR;
-				print_token_source_code_location(interpreter->code, &node->token);
+				if (parent != NULL && parent->node_type == AST_TYPE_DECL) {
+					addglob(interpreter, name, node->type);
+					cg_globsym(interpreter, name, node->type);
+				} else {
+					COLOR(TEXT_YELLOW);
+					fprintf(stderr, "WARNING: Possible undefined reference to `%s`. %s:%lu:%lu\n",
+							name,
+							interpreter->input_filename,
+							node->token.r0,
+							node->token.c0);
+					CLEAR;
+					print_token_source_code_location(interpreter->code, &node->token);
+				}
 				return -1;
 			}
 			return cg_loadglob(interpreter, name);
@@ -617,6 +628,15 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			break;
 	}
 	return 0;
+}
+
+inline void fatalf(char* format, ...) {
+	va_list valist;
+	va_start(valist, format);
+	vfprintf(stderr, format, valist);
+	va_end(valist);
+	assert(false);
+	exit(EXIT_FAILURE);
 }
 
 const char* resolve_pointer_var_name(Ast_Node* node) {

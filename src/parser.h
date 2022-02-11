@@ -52,6 +52,7 @@
 
 // Utility to pop and element from the parser node stack.
 #define FUNCTION_POP(dest) stack_pop(&parser->function_stack, dest)
+#define FUNCTION_PEEK() stack_peek(&parser->function_stack)
 
 // Utility to push an element to the function node stack.
 #define FUNCTION_PUSH(src) stack_push(&parser->function_stack, src)

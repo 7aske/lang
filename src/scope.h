@@ -6,10 +6,10 @@
 #define LANG_SCOPE_H
 
 
-#include "list.h"
+#include "map.h"
 
 typedef struct scope {
-	List variables;
+	Map variables;
 } Scope;
 
 #endif //LANG_SCOPE_H

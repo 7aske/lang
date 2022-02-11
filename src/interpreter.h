@@ -5,6 +5,8 @@
 #ifndef LANG_INTERPRETER_H
 #define LANG_INTERPRETER_H
 
+#include <stdarg.h>
+
 #include "list.h"
 #include "stack.h"
 #include "token.h"
@@ -44,5 +46,9 @@ void interpreter_run(Interpreter* interpreter);
 void interpreter_new(Interpreter* interpreter, List* nodes, FILE* file);
 
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent);
+
+const char* resolve_pointer_var_name(Ast_Node* node);
+
+void fatalf(char* format, ...);
 
 #endif //LANG_INTERPRETER_H
