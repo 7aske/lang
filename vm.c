@@ -35,13 +35,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	FILE* output = fopen("out/out.s", "w+");
-	if (!output) {
-		perror("Unable to open file");
-		exit(EXIT_FAILURE);
-	}
-
-
 	Lexer lexer;
 	Parser parser;
 	lexer_new(&lexer, code_text);
@@ -52,21 +45,23 @@ int main(int argc, char** argv) {
 	Parser_Result result = parser_parse(&parser, &lexer);
 
 	if (result.errors.count == 0) {
+		FILE* output = fopen("out/out.s", "w+");
+		if (!output) {
+			perror("Unable to open file");
+			exit(EXIT_FAILURE);
+		}
 
 		Interpreter interpreter;
 		interpreter_new(&interpreter, &result.nodes, output);
 		// @Temporary need to add these in constructor
 		interpreter.code = parser.code.text;
-		interpreter.input_filename = filename;
 		interpreter_run(&interpreter);
 
 		fflush(output);
 		// @Temporary
 		system("cc -o out/out out/out.s lib/print.c");
+		fclose(output);
 	}
-
-	free(code_text);
-	fclose(output);
 }
 
 

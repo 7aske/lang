@@ -265,9 +265,9 @@ u32 lexer_lex(Lexer* lexer) {
 
 	// @Temporary
 	list_foreach(&lexer->errors, Lexer_Error_Report*, {
-		print_source_code_location(lexer->code.text, it->col, it->row, it->col + 1);
 		fprintf(stderr, "%s @ %s:%lu:%lu\n", it->text, "__FILE__", it->row,
 				it->col);
+		print_source_code_location(lexer->code.text, it->col, it->row, it->col + 1);
 	})
 
 	return lexer->errors.count;

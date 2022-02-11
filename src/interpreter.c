@@ -585,12 +585,12 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		case AST_IDENT:
 			name = node->token.name;
 			if (findglob(interpreter, name) == -1) {
-				print_token_source_code_location(interpreter->code, &node->token);
-				fprintf(stderr, "Possible undefined reference to `%s`. %s:%lu:%lu\n",
+				fprintf(stderr, "WARNING: Possible undefined reference to `%s`. %s:%lu:%lu\n",
 						name,
 						interpreter->input_filename,
 						node->token.r0,
 						node->token.c0);
+				print_token_source_code_location(interpreter->code, &node->token);
 				return -1;
 			}
 			return cg_loadglob(interpreter, name);

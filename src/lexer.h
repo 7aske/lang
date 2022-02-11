@@ -56,7 +56,6 @@ typedef struct lexer_result {
  * @param row  Row of the line where the lexing error occurred.
  */
 typedef struct lexer_error_report {
-	// @Alloc
 	char* text;
 	Token_Type type;
 	// @Incomplete add end col and end row
@@ -230,14 +229,5 @@ void lexer_report_error(Lexer* lexer, Token_Type token_type, u32 col, u32 row, c
  *  @param lexer this
  */
 void lexer_free(Lexer* lexer);
-
-/**
- * Utility function for printing the source code location of the error that
- * occurred during lexing.
- *
- * @param lexer this.
- * @param error_report Source of the error from which we read row and column.
- */
-void lexer_print_source_code_location(Lexer* lexer, Lexer_Error_Report* error_report);
 
 #endif //LANG_LEXER_H
