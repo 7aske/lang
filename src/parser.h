@@ -36,6 +36,7 @@
 #define LANG_PARSER_H
 #include <stdarg.h>
 
+#include "config.h"
 #include "ast.h"
 #include "interpreter.h"
 #include "lexer.h"
@@ -56,6 +57,13 @@
 
 // Utility to push an element to the function node stack.
 #define FUNCTION_PUSH(src) stack_push(&parser->function_stack, src)
+
+#define REPORT_ERROR(token,...) \
+parser_report_error(parser, token, __VA_ARGS__);\
+COLOR(TEXT_YELLOW);\
+fprintf(stderr, "ERROR: ");\
+REPORT_LINE(__VA_ARGS__);\
+CLEAR
 
 #define PARSER_ERROR_BUFLEN 256
 /**

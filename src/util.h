@@ -44,7 +44,7 @@ enum term_color {
 static void print_source_code_location(const char* code, u32 start_col, u64 start_row, u32 end_col) {
 	const char* print_start = NULL;
 
-	while (1) {
+	while (start_row >= 0) {
 
 		if (*code == '\0')
 			start_row--;

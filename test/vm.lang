@@ -11,10 +11,9 @@ fn main() {
 
 	while a > 10 {
 		a = a - 1;
-		printint(a);
+		// printint(a);
 		if a == 20 {
-			printint(a);
-			printhex(&a);
+			printint(a printhex(&a);
 			return a;
 		}
 	}

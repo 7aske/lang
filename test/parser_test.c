@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "config.h"
 
 inline static Parser_Result PARSER_TEST_CASE(char* code) {
 	Parser parser;
@@ -10,9 +11,9 @@ inline static Parser_Result PARSER_TEST_CASE(char* code) {
 	map_put(&parser.symbols, "string", &mock);
 	map_put(&parser.symbols, "File", &mock);
 	parser.code.filename = __FILE__;
-	printf("CODE: %s\n", code);
+	fprintf(stderr, "\n\nCODE: %s\n", code);
 	list_foreach(&lexer.tokens, Token*, {
-		printf("%s\n", token_repr[it->type]);
+		fprintf(stderr, "%s\n", token_repr[it->type]);
 	})
 	Parser_Result retval = parser_parse(&parser, &lexer);
 	lexer_free(&lexer);
@@ -187,7 +188,9 @@ int main(void) {
 	result = PARSER_TEST_CASE("fn write(file: File, count: u64, byte: u32) -> void {"
 							  "a:s32=1;a:s32=1;"
 							  "}");
+	#if PARSER_DEFINED_CHECK
 	assert(result.errors.count == 1);
+	#endif
 
 	result = PARSER_TEST_CASE("fn main(file: File, count: u64, byte: u32) {"
 							  "return 1;"
@@ -195,4 +198,7 @@ int main(void) {
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(root->node_type == AST_FUNC_DEF);
+
+	result = PARSER_TEST_CASE("fn main(file file){return 1;}");
+	assert(result.errors.count == 1);
 }
