@@ -198,7 +198,7 @@ Ast_Result parse_fn_statement(Parser* parser, Token** token) {
 	assert(IS_CURR_OF_TYPE(token, TOK_FN));
 
 	Ast_Result fn_result = parser_create_node(parser, token);
-	Ast_Result left_result = parser_create_node(parser, token);
+	Ast_Result left_result = parser_create_node_no_inc(parser, NEXT_TOKEN(token));
 	if (left_result.node->node_type != AST_IDENT) {
 		parser_report_error(parser, *token, "Expected an identifier");
 		fn_result.error = AST_ERROR;
@@ -288,7 +288,7 @@ inline const Type* resolve_pointer_type(Ast_Node* node) {
 
 Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	Ast_Result type_decl_result;
-	Ast_Result iden_result = parser_create_node(parser, token);
+	Ast_Result iden_result = parser_create_node_no_inc(parser, NEXT_TOKEN(token));
 	if (iden_result.node->node_type != AST_IDENT) {
 		parser_report_error(parser, *token,
 							"Token should be of type `identifier`.");
@@ -426,6 +426,9 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		!IS_PREV_OF_TYPE(token, TOK_IDEN)) {
 		NEXT_TOKEN(token);
 		ast_result = parse_expression(parser, token);
+		if (ast_result.error != AST_NO_ERROR) {
+			return ast_result;
+		}
 		ast_result.node->precedence = S32_MAX;
 
 		if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
@@ -437,6 +440,9 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		PARSER_PUSH(&ast_result);
 
 		Ast_Result new = parse_expression(parser, token);
+		if (new.error != AST_NO_ERROR) {
+			return new;
+		}
 
 		if (new.node == NULL)
 			return ast_result;
@@ -470,7 +476,9 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		NEXT_TOKEN(token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
 			   && IS_PEEK_OF_TYPE(token, TOK_LPAREN)) {
-		parser_create_node(parser, token);
+		// @Temporary because we can link against C and call its functions
+		// we can allow undefined identifiers for function calls.
+		parser_create_node_no_inc(parser, NEXT_TOKEN(token));
 		ast_result = parse_function_call(parser, token);
 	} else if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
 		ast_result = parse_prefix(parser, token);
@@ -718,6 +726,11 @@ inline void parser_new(Parser* parser, char* code) {
 	stack_new(&parser->node_stack, sizeof(Ast_Result));
 	stack_new(&parser->function_stack, sizeof(Ast_Node*));
 	stack_new(&parser->scopes, sizeof(Scope));
+	map_new(&parser->symbols, sizeof(Type));
+	for (int i = 1; i < PRIMITIVE_TYPES_LEN; ++i) {
+		Type* type = &primitive_types[i];
+		map_put(&parser->symbols, type->name, type);
+	}
 }
 
 inline void parser_free(Parser* parser) {
@@ -780,8 +793,18 @@ inline Ast_Node* fix_precedence(Ast_Node* node) {
 Ast_Result parser_create_node(Parser* parser, Token** token) {
 	Ast_Result ast_result = {
 		.error= AST_NO_ERROR,
-		.node= ast_node_new(NEXT_TOKEN(token))
+		.node = 0
 	};
+
+	// For identifiers, we check whether they are defined.
+	if ((*token)->type == TOK_IDEN && !parser_is_defined(parser, (*token)->name)) {
+		parser_report_error(parser, *token, "Undefined identifier `%s`.",
+							(*token)->name);
+		ast_result.error = AST_ERROR;
+		return ast_result;
+	}
+
+	ast_result.node= ast_node_new(NEXT_TOKEN(token));
 
 	stack_push(&parser->node_stack, &ast_result);
 	return ast_result;
@@ -812,13 +835,15 @@ inline bool parser_pop_scope(Parser* parser, Scope* dest) {
 }
 
 bool parser_is_defined(Parser* parser, const char* var_name) {
-	for (s32 i = (s32)parser->scopes.count - 1; i >= 0; --i) {
-		Scope* scope = (Scope*)(parser->scopes.base + (i * parser->scopes.size));
-		for(int j = 0; j < scope->variables.count; ++j) {
+	for (s32 i = (s32) parser->scopes.count - 1; i >= 0; --i) {
+		Scope* scope = (Scope*) (parser->scopes.base + (i * parser->scopes.size));
+		for (int j = 0; j < scope->variables.count; ++j) {
 			char* var = (char*) list_get(&scope->variables, j);
 			if (strcmp(var, var_name) == 0) return true;
 		}
 	}
+	// If the variable wasn't found. Check if there's a type defined
+	if (map_get(&parser->symbols, var_name) != NULL) return true;
 	return false;
 }
 

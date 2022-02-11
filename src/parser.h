@@ -36,10 +36,12 @@
 #define LANG_PARSER_H
 #include <stdarg.h>
 
-#include "lexer.h"
 #include "ast.h"
-#include "stack.h"
+#include "interpreter.h"
+#include "lexer.h"
+#include "map.h"
 #include "scope.h"
+#include "stack.h"
 #include "util.h"
 
 // Utility to pop and element from the parser node stack.
@@ -97,6 +99,7 @@ typedef struct parser {
 	} code;
 
 	List  errors;
+	Map   symbols;
 	Stack node_stack;
 	Stack function_stack;
 	Stack scopes;
