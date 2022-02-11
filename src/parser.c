@@ -340,7 +340,7 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result.node->left = iden_result.node;
 	type_decl_result.node->right = type_result.node;
 
-	#if PARSER_SKIP_DEFINED_CHECK
+	#if PARSER_DEFINED_CHECK
 	if (parser_is_defined(parser, type_decl_result.node->left->token.name)) {
 		REPORT_ERROR(&type_decl_result.node->left->token,
 							"Identifier `%s` is already defined.",
@@ -670,7 +670,7 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	result.node->left = left_ast_result.node;
 	result.node->right = right_ast_result.node;
 
-	#if PARSER_SKIP_DEFINED_CHECK
+	#if PARSER_DEFINED_CHECK
 	if (result.node->left->token.type == TOK_IDEN
 		&& !parser_is_defined(parser, result.node->left->token.name)) {
 		REPORT_ERROR(&result.node->left->token,
@@ -681,7 +681,7 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	}
 	#endif
 
-	#if PARSER_SKIP_DEFINED_CHECK
+	#if PARSER_DEFINED_CHECK
 	if (result.node->right->token.type == TOK_IDEN
 		&& !parser_is_defined(parser, result.node->right->token.name)) {
 		REPORT_ERROR(&result.node->left->token,
@@ -691,6 +691,16 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 		return result;
 	}
 	#endif
+
+	// If the assignment is happening between a type decl that is not defining
+	// a pointer and an address node we fail.
+	if (result.node->left->node_type == AST_TYPE_DECL) {
+		if (!(result.node->left->right->type.flags & TYPE_POINTER) == (result.node->right->node_type == AST_ADDR)) {
+			REPORT_ERROR(&result.node->token, "Cannot assign an address to a non-pointer type.");
+			result.error = AST_ERROR;
+			return result;
+		}
+	}
 
 	if (result.node->left != NULL &&
 		result.node->left->node_type == AST_IDENT) {
@@ -836,7 +846,7 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 	};
 
 	// For identifiers, we check whether they are defined.
-	#if PARSER_SKIP_DEFINED_CHECK
+	#if PARSER_DEFINED_CHECK
 	if ((*token)->type == TOK_IDEN && !parser_is_defined(parser, (*token)->name)) {
 		REPORT_ERROR(*token, "Undefined identifier `%s`.",
 							(*token)->name);

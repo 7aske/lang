@@ -474,6 +474,24 @@ s32 cg_deref(Interpreter* interpreter, s32 reg, const char* name) {
 	return reg;
 }
 
+// Store through a dereferenced pointer
+s32 cg_storderef(Interpreter* interpreter, s32 r1, s32 r2, const char* name) {
+	Symbol* symbol = findglobsym(interpreter, name);
+	assert(symbol != NULL);
+
+	fprintf(interpreter->output, "\t# cg_storderef\n");
+	if (symbol->type.size > 1) {
+		fprintf(interpreter->output, "\tmovq\t%s, (%s)\n",
+				interpreter->registers[r1],
+				interpreter->registers[r2]);
+	} else {
+		fprintf(interpreter->output, "\tmovb\t%s, (%s)\n",
+				interpreter->b_registers[r1],
+				interpreter->registers[r2]);
+	}
+	return (r1);
+}
+
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
 	s32 leftreg, rightreg, retreg;
 	const char* name;
@@ -517,7 +535,11 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 
 	switch (node->node_type) {
 		case AST_DEREF:
-			return cg_deref(interpreter, leftreg, resolve_pointer_var_name(node));
+			if (parent->node_type != AST_ASSIGN) {
+				return cg_deref(interpreter, rightreg, resolve_pointer_var_name(node));
+			} else {
+				return cg_loadglob(interpreter, resolve_pointer_var_name(node));
+			}
 		case AST_ADDR:
 			return cg_address(interpreter, resolve_pointer_var_name(node));
 		case AST_FUNC_RETURN:
@@ -608,8 +630,19 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			}
 			return cg_loadglob(interpreter, name);
 		case AST_ASSIGN:
+			switch (node->left->node_type) {
+				case AST_IDENT:
+					reg = cg_storglob(interpreter, leftreg, node->left->token.name);
+					break;
+				case AST_DEREF:
+					reg = cg_storderef(interpreter, rightreg, leftreg, node->left->right->token.name);
+					break;
+				default:
+					reg = rightreg;
+					break;
+			}
 			freeall_registers(interpreter);
-			return rightreg;
+			return reg;
 		case AST_LITERAL:
 			switch (node->token.type) {
 				case TOK_LIT_CHR:

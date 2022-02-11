@@ -1,4 +1,4 @@
-a:s8;
+a:s64 = 5;
 
 fn main() {
 	a = 5;
@@ -7,13 +7,19 @@ fn main() {
 	a = a * (b + 1);
 
 	c:*s8 = &a;
-	d: s8 = *c;
+	*c = 99;
+	d:s32 = *a;
+	d = d + 1;
+
+	*c = *c * 3;
 
 	while a > 10 {
 		a = a - 1;
-		// printint(a);
+		printint(a);
 		if a == 20 {
-			printint(a printhex(&a);
+			printint(a);
+			printhex(&a);
+			printint(d);
 			return a;
 		}
 	}
