@@ -456,12 +456,12 @@ s32 cg_address(Interpreter* interpreter, const char* name) {
 	return r;
 }
 
-s32 cg_deref(Interpreter* interpreter, s32 reg, const char* name) {
-	Symbol* symbol = findglobsym(interpreter, name);
-	assert(symbol != NULL);
+s32 cg_deref(Interpreter* interpreter, s32 reg, s32 size) {
+	// Symbol* symbol = findglobsym(interpreter, name);
+	// assert(symbol != NULL);
 
 	fprintf(interpreter->output, "\t# cg_deref\n");
-	s32 size = (symbol->type.size > TYPE_CHAR_SIZE ? TYPE_LONG_SIZE : TYPE_CHAR_SIZE);
+	size = (size > TYPE_CHAR_SIZE ? TYPE_LONG_SIZE : TYPE_CHAR_SIZE);
 	if (size > 1) {
 		fprintf(interpreter->output, "\tmovq\t(%s), %s\n",
 				interpreter->registers[reg],
@@ -520,7 +520,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 
 	if (node->right) {
 		// Do not parse the right size of the type declaration
-		if (node->node_type == AST_TYPE_DECL || node->right->node_type == AST_DEREF)
+		if (node->node_type == AST_TYPE_DECL)
 			rightreg = reg;
 		else
 			rightreg = interpreter_decode(interpreter, node->right, -1, node);
@@ -529,14 +529,16 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	if (node->left) {
 		// @Temporary @Hack to persist the register returned by the right tree
 		// parsing of the assignment node + node_type decl
-		if (node->node_type == AST_TYPE_DECL && rightreg == -1) rightreg = reg;
-		leftreg = interpreter_decode(interpreter, node->left, rightreg, node);
+		if (node->node_type == AST_TYPE_DECL)
+			leftreg = interpreter_decode(interpreter, node->left, reg, node);
+		else
+			leftreg = interpreter_decode(interpreter, node->left, rightreg, node);
 	}
 
 	switch (node->node_type) {
 		case AST_DEREF:
 			if (parent->node_type != AST_ASSIGN) {
-				return cg_deref(interpreter, rightreg, resolve_pointer_var_name(node));
+				return cg_deref(interpreter, rightreg, node->type.size);
 			} else {
 				return cg_loadglob(interpreter, resolve_pointer_var_name(node));
 			}

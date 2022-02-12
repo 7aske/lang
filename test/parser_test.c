@@ -200,5 +200,10 @@ int main(void) {
 	assert(root->node_type == AST_FUNC_DEF);
 
 	result = PARSER_TEST_CASE("fn main(file file){return 1;}");
-	assert(result.errors.count == 1);
+	assert(result.errors.count >= 1);
+
+	result = PARSER_TEST_CASE("a:*s32;b:s32; a = &b + 1;");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 2);
+	assert(root->right->node_type == AST_ARITHMETIC);
 }

@@ -350,6 +350,8 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	}
 	#endif
 
+	// After resolving the type. We put it in the variable map.
+	map_put(&parser->symbols, iden_result.node->token.name, &iden_result.node->type);
 	map_put(&parser_peek_scope(parser)->variables,
 			  type_decl_result.node->left->token.name,
 			  &type_decl_result.node->right->type);
@@ -482,6 +484,15 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	} else if (IS_CURR_OF_TYPE(token, TOK_STAR)
 			   || IS_CURR_OF_TYPE(token, TOK_AMP)) {
 		ast_result = parse_prefix(parser, token);
+
+		// Safety check. We don't allow referencing non-pointer types.
+		if (ast_result.node->node_type == AST_DEREF) {
+			if (!(ast_result.node->right->type.flags & TYPE_POINTER)) {
+				REPORT_ERROR(&ast_result.node->token, "Cannot dereference a non-pointer type.");
+				ast_result.error = AST_ERROR;
+				return ast_result;
+			}
+		}
 	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
 			   && IS_PEEK_OF_TYPE(token, TOK_COL)) {
 		ast_result = parse_type_decl_node(parser, token);
@@ -856,6 +867,14 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 	#endif
 
 	ast_result.node= ast_node_new(NEXT_TOKEN(token));
+
+	#if PARSER_DEFINED_CHECK
+	// It is defined for sure. We now need to update its type.
+	if (ast_result.node->node_type == AST_IDENT) {
+		Type* type = map_get(&parser->symbols, ast_result.node->token.name);
+		ast_result.node->type = *type;
+	}
+	#endif
 
 	stack_push(&parser->node_stack, &ast_result);
 	return ast_result;
