@@ -12,9 +12,9 @@ REPORT_LINE();\
 fatalf("Invalid registers `%d`,`%d` in `%s`\n", r1, r2, __func);\
 }
 
-s32 cg_preinc(Interpreter* p_interpreter, s32 rightreg, u32 size);
+s32 cg_inc(Interpreter* interpreter, s32 reg, u32 size);
 
-s32 cg_predec(Interpreter* interpreter, s32 reg, u32 size);
+s32 cg_dec(Interpreter* interpreter, s32 reg, u32 size);
 
 // Set all registers as available
 void freeall_registers(Interpreter* interpreter) {
@@ -45,8 +45,8 @@ static s32 alloc_register(Interpreter* interpreter) {
 static void free_register(Interpreter* interpreter, s32 reg) {
 	if (interpreter->freereg[reg] != 0) {
 		fprintf(stderr, "Error trying to free register %ld\n", reg);
-		assert(false);
-		exit(1);
+		// assert(false);
+		// exit(1);
 	}
 	interpreter->freereg[reg] = 1;
 }
@@ -583,13 +583,13 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		case AST_PREINC:
 			name = node->right->token.name;
 			// @Temporary account for the variable size;
-			reg = cg_preinc(interpreter, rightreg, 1);
+			reg = cg_inc(interpreter, rightreg, 1);
 			return cg_storglob(interpreter, reg, name);
 			break;
 		case AST_PREDEC:
 			name = node->right->token.name;
 			// @Temporary account for the variable size;
-			reg = cg_predec(interpreter, rightreg, 1);
+			reg = cg_dec(interpreter, rightreg, 1);
 			return cg_storglob(interpreter, reg, name);
 			break;
 		case AST_RELATIONAL:
@@ -699,7 +699,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	return 0;
 }
 
-s32 cg_preinc(Interpreter* interpreter, s32 reg, u32 size) {
+s32 cg_inc(Interpreter* interpreter, s32 reg, u32 size) {
 	fprintf(interpreter->output, "\t# cg_add\n");
 	fprintf(interpreter->output, "\taddq\t$%ld, %s\n",
 			size,
@@ -707,7 +707,7 @@ s32 cg_preinc(Interpreter* interpreter, s32 reg, u32 size) {
 	return (reg);
 }
 
-s32 cg_predec(Interpreter* interpreter, s32 reg, u32 size) {
+s32 cg_dec(Interpreter* interpreter, s32 reg, u32 size) {
 	fprintf(interpreter->output, "\t# cg_add\n");
 	fprintf(interpreter->output, "\tsubq\t$%ld, %s\n",
 			size,

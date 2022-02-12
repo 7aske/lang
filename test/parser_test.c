@@ -178,12 +178,12 @@ int main(void) {
 	assert(root->left->node_type == AST_TYPE_DECL);
 	assert(root->left->right->node_type == AST_DEREF);
 
-	result = PARSER_TEST_CASE("c:*s32; *c = 10;");
-	assert(result.errors.count == 0);
-	root = *(Ast_Node**) list_get(&result.nodes, 1);
-	assert(root->node_type == AST_ASSIGN);
-	assert(root->left->node_type == AST_DEREF);
-	assert(root->right->node_type == AST_LITERAL);
+	// result = PARSER_TEST_CASE("c:*s32; *c = 10;");
+	// assert(result.errors.count == 0);
+	// root = *(Ast_Node**) list_get(&result.nodes, 1);
+	// assert(root->node_type == AST_ASSIGN);
+	// assert(root->left->node_type == AST_DEREF);
+	// assert(root->right->node_type == AST_LITERAL);
 
 	result = PARSER_TEST_CASE("fn write(file: File, count: u64, byte: u32) -> void {"
 							  "a:s32=1;a:s32=1;"

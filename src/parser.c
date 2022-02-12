@@ -44,6 +44,8 @@ Ast_Result parse_assn_binop_node(Parser* parser, Token** token) {
 	binary_node.node->right = right_ast_result.node;
 	binary_node.error = right_ast_result.error;
 
+	PARSER_PUSH(&binary_node);
+
 	return binary_node;
 }
 
@@ -441,9 +443,47 @@ Ast_Result parse_block_node(Parser* parser, Token** token) {
 	return ast_result;
 }
 
+
+Ast_Result parse_suffix(Parser* parser, Token** token) {
+	Ast_Result left_ast_result = parser_create_node(parser, token);
+	if (left_ast_result.error != AST_NO_ERROR) {
+		left_ast_result.error = AST_ERROR;
+		return left_ast_result;
+	}
+
+	// if (IS_CURR_OF_TYPE(token, TOK_INC)
+	// 	|| IS_CURR_OF_TYPE(token, TOK_DEC)) {
+		Ast_Result suffix_result = parser_create_node(parser, token);
+		if (suffix_result.error != AST_NO_ERROR) {
+			left_ast_result.error = AST_ERROR;
+			return left_ast_result;
+		}
+
+		// parser_create_node is dumb, and it will always create a node with the
+		// type of the pre inc/dec.
+		if (suffix_result.node->node_type == AST_PREDEC) {
+			suffix_result.node->node_type = AST_POSTDEC;
+		} else if (suffix_result.node->node_type == AST_PREINC) {
+			suffix_result.node->node_type = AST_POSTINC;
+		}
+
+		suffix_result.node->right = left_ast_result.node;
+
+		PARSER_PUSH(&suffix_result);
+
+		return suffix_result;
+
+	// } else {
+	// 	return ast_result;
+	// }
+}
+
 Ast_Result parse_prefix(Parser* parser, Token** token) {
 	Token* curr_tok = *token;
 	Ast_Result ast_result = parser_create_node(parser, token);
+	if (ast_result.error != AST_NO_ERROR) {
+		return ast_result;
+	}
 	if (curr_tok->type == TOK_STAR) {
 		ast_result.node->node_type = AST_DEREF;
 	} else if (curr_tok->type == TOK_AMP) {
@@ -505,6 +545,7 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		ast_result = parse_prefix(parser, token);
 
 		// Safety check. We don't allow referencing non-pointer types.
+		#if PARSER_DEFINED_CHECK
 		if (ast_result.node->node_type == AST_DEREF) {
 			if (!(ast_result.node->right->type.flags & TYPE_POINTER)) {
 				REPORT_ERROR(&ast_result.node->token, "Cannot dereference a non-pointer type.");
@@ -512,6 +553,7 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 				return ast_result;
 			}
 		}
+		#endif
 	} else if (IS_CURR_OF_TYPE(token, TOK_IDEN)
 			   && IS_PEEK_OF_TYPE(token, TOK_COL)) {
 		ast_result = parse_type_decl_node(parser, token);
@@ -684,6 +726,8 @@ Ast_Result parse_function_call(Parser* parser, Token** token) {
 
 	result.node->middle = arg_list_result.node;
 
+	PARSER_PUSH(&result);
+
 	return result;
 }
 
@@ -765,6 +809,8 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 		if (iden != NULL)
 			iden->node_type = AST_LVIDENT;
 	}
+
+	PARSER_PUSH(&result);
 
 	return result;
 }
