@@ -671,7 +671,15 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 		PARSER_POP(&left_ast_result);
 	}
 
+
 	Ast_Result result = parser_create_node(parser, token);
+
+	if (left_ast_result.node->node_type == AST_ADDR) {
+		REPORT_ERROR(&left_ast_result.node->token, "Cannot take an address of an lvalue identifier.");
+		result.error = AST_ERROR;
+		return result;
+	}
+
 	Ast_Result right_ast_result = parse_expression(parser, token);
 	if (right_ast_result.error != AST_NO_ERROR) {
 		result.error = right_ast_result.error;
