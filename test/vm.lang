@@ -14,9 +14,11 @@ fn main() {
 	*c = *c * 3;
 
 	while a > 10 {
-		a -= 1;
+		--a;
 		printint(a);
 		if a == 20 {
+			++a;
+			a += 5;
 			printint(a);
 			printhex(&a);
 			printint(d);

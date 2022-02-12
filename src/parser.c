@@ -448,7 +448,8 @@ Ast_Result parse_prefix(Parser* parser, Token** token) {
 		ast_result.node->node_type = AST_DEREF;
 	} else if (curr_tok->type == TOK_AMP) {
 		ast_result.node->node_type = AST_ADDR;
-	} else {
+	} else if (ast_result.node->node_type != AST_PREINC
+			   && ast_result.node->node_type != AST_PREDEC) {
 		return ast_result;
 	}
 

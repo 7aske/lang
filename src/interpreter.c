@@ -12,6 +12,10 @@ REPORT_LINE();\
 fatalf("Invalid registers `%d`,`%d` in `%s`\n", r1, r2, __func);\
 }
 
+s32 cg_preinc(Interpreter* p_interpreter, s32 rightreg, u32 size);
+
+s32 cg_predec(Interpreter* interpreter, s32 reg, u32 size);
+
 // Set all registers as available
 void freeall_registers(Interpreter* interpreter) {
 	s32 i;
@@ -576,6 +580,18 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 											  leftreg, rightreg);
 			}
 			break;
+		case AST_PREINC:
+			name = node->right->token.name;
+			// @Temporary account for the variable size;
+			reg = cg_preinc(interpreter, rightreg, 1);
+			return cg_storglob(interpreter, reg, name);
+			break;
+		case AST_PREDEC:
+			name = node->right->token.name;
+			// @Temporary account for the variable size;
+			reg = cg_predec(interpreter, rightreg, 1);
+			return cg_storglob(interpreter, reg, name);
+			break;
 		case AST_RELATIONAL:
 			switch (node->token.type) {
 				case TOK_GT:
@@ -681,6 +697,22 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			break;
 	}
 	return 0;
+}
+
+s32 cg_preinc(Interpreter* interpreter, s32 reg, u32 size) {
+	fprintf(interpreter->output, "\t# cg_add\n");
+	fprintf(interpreter->output, "\taddq\t$%ld, %s\n",
+			size,
+			interpreter->registers[reg]);
+	return (reg);
+}
+
+s32 cg_predec(Interpreter* interpreter, s32 reg, u32 size) {
+	fprintf(interpreter->output, "\t# cg_add\n");
+	fprintf(interpreter->output, "\tsubq\t$%ld, %s\n",
+			size,
+			interpreter->registers[reg]);
+	return (reg);
 }
 
 inline void fatalf(char* format, ...) {
