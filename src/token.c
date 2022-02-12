@@ -41,11 +41,17 @@ Token_Type resolve_operator(const char* ptr) {
 		return TOK_RPAREN;
 	}
 	if (*ptr == '*') {
-		return TOK_STAR;
+		if (*(ptr + 1) == '=') {
+			return TOK_MULASSN;
+		} else {
+			return TOK_STAR;
+		}
 	}
 	if (*ptr == '+') {
 		if (*(ptr + 1) == '+') {
 			return TOK_INC;
+		} else if (*(ptr + 1) == '=') {
+			return TOK_ADDASSN;
 		} else {
 			return TOK_ADD;
 		}
@@ -56,6 +62,8 @@ Token_Type resolve_operator(const char* ptr) {
 	if (*ptr == '-') {
 		if (*(ptr + 1) == '-') {
 			return TOK_DEC;
+		} else if (*(ptr + 1) == '=') {
+			return TOK_SUBASSN;
 		} else if (*(ptr + 1) == '>') {
 			return TOK_THIN_ARRW;
 		} else {
@@ -70,7 +78,11 @@ Token_Type resolve_operator(const char* ptr) {
 		}
 	}
 	if (*ptr == '/') {
-		return TOK_DIV;
+		if (*(ptr + 1) == '=') {
+			return TOK_DIVASSN;
+		} else {
+			return TOK_DIV;
+		}
 	}
 	if (*ptr == ':') {
 		return TOK_COL;

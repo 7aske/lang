@@ -234,6 +234,7 @@ Ast_Result parse_boolean_node(Parser* parser, Token** token);
  * @return Ast_Result of parsed boolean node.
  */
 Ast_Result parse_binary_operation_node(Parser* parser, Token** token);
+Ast_Result parse_assn_binop_node(Parser* parser, Token** token);
 
 /**
  * Function for parsing a block statement.

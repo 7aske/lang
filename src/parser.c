@@ -29,6 +29,24 @@ Ast_Result parse_boolean_node(Parser* parser, Token** token) {
 	return boolean_node;
 }
 
+Ast_Result parse_assn_binop_node(Parser* parser, Token** token) {
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		left_ast_result = parser_create_node(parser, token);
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
+
+	Ast_Result binary_node = parser_create_node(parser, token);
+	binary_node.node->left = left_ast_result.node;
+
+	Ast_Result right_ast_result = parse_expression(parser, token);
+	binary_node.node->right = right_ast_result.node;
+	binary_node.error = right_ast_result.error;
+
+	return binary_node;
+}
+
 Ast_Result parse_binary_operation_node(Parser* parser, Token** token) {
 	// @formatter:off
 	assert(IS_CURR_OF_TYPE(token, TOK_GT)   ||
@@ -562,6 +580,13 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		// @formatter:on
 		// All of these are for now parsed as a generic binary operation.
 		ast_result = parse_binary_operation_node(parser, token);
+		// @formatter:on
+	} else if (IS_CURR_OF_TYPE(token, TOK_SUBASSN) ||
+			   IS_CURR_OF_TYPE(token, TOK_ADDASSN) ||
+			   IS_CURR_OF_TYPE(token, TOK_MULASSN) ||
+			   IS_CURR_OF_TYPE(token, TOK_DIVASSN)) {
+		// @formatter:on
+		ast_result = parse_assn_binop_node(parser, token);
 	}
 
 	return ast_result;

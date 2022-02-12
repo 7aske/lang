@@ -206,4 +206,9 @@ int main(void) {
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 2);
 	assert(root->right->node_type == AST_ARITHMETIC);
+
+	result = PARSER_TEST_CASE("a:s32; a += 1;");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 1);
+	assert(root->node_type == AST_ASSN_BINOP);
 }

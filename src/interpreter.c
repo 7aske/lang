@@ -591,6 +591,24 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 											  leftreg, rightreg);
 			}
 			break;
+		case AST_ASSN_BINOP:
+			name = node->left->token.name;
+			switch (node->token.type) {
+				case TOK_ADDASSN:
+					reg = cg_add(interpreter, leftreg, rightreg);
+					break;
+				case TOK_SUBASSN:
+					reg = cg_sub(interpreter, leftreg, rightreg);
+					break;
+				case TOK_DIVASSN:
+					reg = cg_div(interpreter, leftreg, rightreg);
+					break;
+				case TOK_MULASSN:
+					reg = cg_mul(interpreter, leftreg, rightreg);
+					break;
+			}
+			return cg_storglob(interpreter, reg, name);
+			break;
 		case AST_ARITHMETIC:
 			switch (node->token.type) {
 				case TOK_ADD:

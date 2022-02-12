@@ -28,6 +28,11 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 			return AST_DEFAULT;
 		case TOK_COL:
 			return AST_TYPE_DECL;
+		case TOK_SUBASSN:
+		case TOK_ADDASSN:
+		case TOK_DIVASSN:
+		case TOK_MULASSN:
+			return AST_ASSN_BINOP;
 		case TOK_ADD:
 		case TOK_SUB:
 		case TOK_DIV:
