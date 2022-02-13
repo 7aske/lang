@@ -32,8 +32,7 @@ set(SOURCE_FILES
         src/util.h
         )
 
-add_executable(lang main.c ${SOURCE_FILES})
-add_executable(vm vm.c ${SOURCE_FILES})
+add_executable(lang lang.c ${SOURCE_FILES})
 
 # TESTS
 include(CTest)
