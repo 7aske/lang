@@ -20,6 +20,7 @@ typedef enum ast_node_type {
 	AST_IDENT,
 	AST_LVIDENT,
 	AST_LITERAL,
+	AST_ARRAY_INDEX,
 
 	AST_ARITHMETIC,
 	AST_ASSN_BINOP,

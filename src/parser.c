@@ -7,6 +7,8 @@
 
 #include "parser.h"
 
+Ast_Result parse_array_index(Parser* p_parser, Token** p_token);
+
 Ast_Result parse_boolean_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_AND || (*token)->type == TOK_OR);
 	Ast_Result left_ast_result;
@@ -601,6 +603,8 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		ast_result = parse_argument_list(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_ASSN)) {
 		ast_result = parse_assignment_node(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_LBRACK)) {
+		ast_result = parse_array_index(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_IN)) {
 		ast_result = parse_in_node(parser, token);
 	} else if (IS_CURR_OF_TYPE(token, TOK_DDOT)) {
@@ -633,6 +637,39 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	}
 
 	return ast_result;
+}
+
+Ast_Result parse_array_index(Parser* parser, Token** token) {
+	Ast_Result result = parser_create_node(parser, token);
+	Ast_Result left_ast_result;
+
+	if (stack_is_empty(&parser->node_stack)) {
+		REPORT_ERROR(*token, "Unable to array index.");
+		result.error = AST_ERROR;
+		return result;
+	} else {
+		PARSER_POP(&left_ast_result);
+	}
+
+	result.node->left = left_ast_result.node;
+
+	Ast_Result index_result = parse_expression(parser, token);
+	if (index_result.error != AST_NO_ERROR) {
+		result.error = result.error;
+		return result;
+	}
+
+	result.node->right = index_result.node;
+
+	if (!IS_CURR_OF_TYPE(token, TOK_RBRACK)) {
+		REPORT_ERROR(*token, "Expected token ]");
+		result.error = AST_ERROR;
+		return result;
+	} else {
+		NEXT_TOKEN(token);
+	}
+
+	return result;
 }
 
 Ast_Result parse_iter_node(Parser* parser, Token** token) {

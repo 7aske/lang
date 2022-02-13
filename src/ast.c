@@ -59,6 +59,8 @@ inline Ast_Node_Type convert_token_to_ast_node_type(Token_Type token) {
 			return AST_IDENT;
 		case TOK_LBRACE:
 			return AST_BLOCK;
+		case TOK_LBRACK:
+			return AST_ARRAY_INDEX;
 		case TOK_FN:
 			return AST_FUNC_DEF;
 		case TOK_THIN_ARRW:

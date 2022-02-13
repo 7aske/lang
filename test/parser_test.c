@@ -216,4 +216,9 @@ int main(void) {
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 1);
 	assert(root->node_type == AST_PREINC);
+
+	result = PARSER_TEST_CASE("a:s32; a[1];");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 1);
+	assert(root->node_type == AST_ARRAY_INDEX);
 }

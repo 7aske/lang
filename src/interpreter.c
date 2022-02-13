@@ -193,6 +193,20 @@ void cg_globsym(Interpreter* interpreter, const char* name, Type type) {
 	fprintf(interpreter->output, "\t# cg_globsym %s\n", name);
 	fprintf(interpreter->output, "\t.comm\t%s,%ld,%ld\n",
 			name, size, size);
+	// @ToDo
+	// s32 size = type.size;
+	//
+	// fprintf(interpreter->output, "\t.data\n" "\t.globl\t%s\n", name);
+	// fprintf(interpreter->output, "%s:", name);
+	//
+	// for (int i=0; i < type.elements; i++) {
+	// 	switch(type.size) {
+	// 		case 1: fprintf(interpreter->output, "\t.byte\t0\n"); break;
+	// 		case 4: fprintf(interpreter->output, "\t.long\t0\n"); break;
+	// 		case 8: fprintf(interpreter->output, "\t.quad\t0\n"); break;
+	// 		default: fatalf("Unknown typesize in cg_globsym: %d", size);
+	// 	}
+	// }
 }
 
 // Store a register's value into a variable
