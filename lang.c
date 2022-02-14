@@ -8,6 +8,10 @@
 #include "src/parser.h"
 #include "src/interpreter.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 long long get_file_size(FILE* file) {
 	struct stat stat_info;
 
@@ -52,6 +56,11 @@ int main(int argc, char** argv) {
 		exit(EXIT_FAILURE);
 	}
 
+	// Fix non-ascii characters printing on Windows
+	#ifdef _WIN32
+	SetConsoleOutputCP(CP_UTF8);
+	#endif
+
 	input_filename = strdup(argv[optind]);
 
 	FILE* fileptr = fopen(input_filename, "r");
@@ -70,7 +79,7 @@ int main(int argc, char** argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	code_text = (char*) malloc(file_size);
+	code_text = (char*) malloc(file_size + 1);
 	if (!code_text) {
 		perror("Allocation error");
 		exit(EXIT_FAILURE);
@@ -81,11 +90,23 @@ int main(int argc, char** argv) {
 	while ((c = fgetc(fileptr)) != EOF) {
 		*ptr++ = (char)c;
 	}
+	*ptr = '\0';
+
 
 	Lexer lexer;
 	Parser parser;
 	lexer_new(&lexer, code_text);
-	lexer_lex(&lexer);
+
+	// If there are errors report them before parsing and exit.
+	if (lexer_lex(&lexer)) {
+		list_foreach(&lexer.errors, Lexer_Error_Report*, {
+			fprintf(stderr, "%s @ %s:%lu:%lu\n", it->text, input_filename, it->row,
+					it->col);
+			print_source_code_location(lexer.code.text, it->col, it->row, it->col + 1);
+		})
+		return (int) lexer.errors.count;
+	}
+
 	parser_new(&parser, code_text);
 	// @Temporary need to add input_filename in parser "constructor"
 	parser.code.filename = input_filename;
@@ -133,7 +154,7 @@ int main(int argc, char** argv) {
 		system(command_buffer);
 	}
 
-	exit((s16)result.errors.count);
+	return (s16)result.errors.count;
 }
 
 

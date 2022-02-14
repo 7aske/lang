@@ -213,7 +213,7 @@ u32 lexer_lex(Lexer* lexer) {
 			size = lexer_eat_string(&ptr, string_buffer);
 
 			if (size == LEXER_FAILED) {
-				lexer_report_error(lexer, TOK_LIT_STR, col, row, "Unquoted string");
+				lexer_report_error(lexer, TOK_LIT_STR, col, row, "Unterminated string");
 				break;
 			}
 
@@ -262,13 +262,6 @@ u32 lexer_lex(Lexer* lexer) {
 	}
 
 	string_buffer_free(string_buffer);
-
-	// @Temporary
-	list_foreach(&lexer->errors, Lexer_Error_Report*, {
-		fprintf(stderr, "%s @ %s:%lu:%lu\n", it->text, "__FILE__", it->row,
-				it->col);
-		print_source_code_location(lexer->code.text, it->col, it->row, it->col + 1);
-	})
 
 	return lexer->errors.count;
 }
