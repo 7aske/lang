@@ -256,8 +256,12 @@ static const char* token_value[] = {
 	"}",
 	"[",
 	"]",
-	// Literals do not have their representations.
-	NULL, NULL, NULL, NULL, NULL, NULL
+	NULL,
+	"identifier",
+	"string",
+	"char",
+	"int",
+	"float",
 };
 
 /**

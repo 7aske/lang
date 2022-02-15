@@ -342,16 +342,48 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	type_decl_result = parser_create_node(parser, token);
 
 	Ast_Result type_result = parse_prefix(parser, token);
-	if (type_result.error != AST_NO_ERROR) {
-		type_decl_result.error = AST_ERROR;
-		return type_decl_result;
-	}
-
+	// Check error?
 	(void) resolve_pointer_type(type_result.node);
 	// Copy the resolved type to the identifier
 	iden_result.node->type = type_result.node->type;
+	if (IS_CURR_OF_TYPE(token, TOK_LBRACK)) {
+		type_result = parse_array_index(parser, token);
+	}
 
-	if (type_result.node->node_type != AST_IDENT
+	// We don't allow dynamic sizes of static arrays.
+	if (type_result.node->node_type == AST_ARRAY_INDEX) {
+		if (type_result.node->right->node_type != AST_LITERAL || type_result.node->right->token.type != TOK_LIT_INT) {
+			REPORT_ERROR(&type_result.node->token,
+						 "Array declaration size must be of type `%s`. Got `%s`.",
+						 token_value[TOK_LIT_INT],
+						 token_value[type_result.node->right->token.type]);
+			type_decl_result.error = AST_ERROR;
+			return type_decl_result;
+		}
+
+		if (type_result.node->right->token.integer_value < 0) {
+			REPORT_ERROR(&type_result.node->token,
+						 "Array declaration size be a non-negative number");
+			type_decl_result.error = AST_ERROR;
+			return type_decl_result;
+		}
+		// Array index identifier will be the type of the array.
+		Type* type = map_get(&parser->symbols, type_result.node->left->token.name);
+
+		iden_result.node->type = type_result.node->type = *type;
+		iden_result.node->type.flags |= TYPE_ARRAY;
+		type_result.node->type.flags |= TYPE_ARRAY;
+		// Set element count of the identifier to the element count of
+		// the statically declared array.
+		iden_result.node->type.elements = type_result.node->right->token.integer_value;
+	}
+
+	if (type_result.error != AST_NO_ERROR) {
+			type_decl_result.error = AST_ERROR;
+		return type_decl_result;
+	}
+
+	if ((type_result.node->node_type != AST_IDENT && type_result.node->node_type != AST_ARRAY_INDEX)
 		&& type_result.node->node_type != AST_DEREF
 		&& type_result.node->node_type != AST_ADDR) {
 		REPORT_ERROR(*token, "Token should be of type `identifier`.");
@@ -640,9 +672,8 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 }
 
 Ast_Result parse_array_index(Parser* parser, Token** token) {
-	Ast_Result result = parser_create_node(parser, token);
+	Ast_Result result;
 	Ast_Result left_ast_result;
-
 	if (stack_is_empty(&parser->node_stack)) {
 		REPORT_ERROR(*token, "Unable to array index.");
 		result.error = AST_ERROR;
@@ -650,6 +681,7 @@ Ast_Result parse_array_index(Parser* parser, Token** token) {
 	} else {
 		PARSER_POP(&left_ast_result);
 	}
+	result = parser_create_node(parser, token);
 
 	result.node->left = left_ast_result.node;
 

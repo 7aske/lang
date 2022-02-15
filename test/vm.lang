@@ -1,14 +1,19 @@
+// for now we support only global variables
 a:s64 = 5;
+b:s32;
+c:*s8;
+d:s32;
+arr:s32[33];
 
 fn main() {
 	a = 5;
-	b:s32 = 6 + 5;
+	b = 6 + 5;
 
 	a = a * (b + 1);
 
-	c:*s8 = &a;
+	c = &a;
 	*c = 99;
-	d:s32 = *c + 1;
+	d = *c + 1;
 	d = d + 1;
 
 	*c = *c * 3;
