@@ -32,6 +32,12 @@ s32 cg_shlconst(Interpreter* interpreter, s32 r, s32 val) {
 	return(r);
 }
 
+// Shift a register left by a constant
+s32 cg_shrconst(Interpreter* interpreter, s32 r, s32 val) {
+	fprintf(interpreter->output, "\tsarq\t$%ld, %s\n", val, interpreter->registers[r]);
+	return(r);
+}
+
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
 static s32 alloc_register(Interpreter* interpreter) {
@@ -208,6 +214,7 @@ void cg_globsym(Interpreter* interpreter, const char* name, Type type) {
 	for (int i=0; i < type.elements; i++) {
 		switch(type.size) {
 			case 1: fprintf(interpreter->output, "\t.byte\t0\n"); break;
+			case 2: fprintf(interpreter->output, "\t.word\t0\n"); break;
 			case 4: fprintf(interpreter->output, "\t.long\t0\n"); break;
 			case 8: fprintf(interpreter->output, "\t.quad\t0\n"); break;
 			default: fatalf("Unknown typesize in cg_globsym: %d", size);
@@ -368,6 +375,11 @@ void interpreter_new(Interpreter* interpreter, List* nodes, FILE* output) {
 	interpreter->d_registers[2] = "%r10d";
 	interpreter->d_registers[3] = "%r11d";
 
+	interpreter->w_registers[0] = "%r8w";
+	interpreter->w_registers[1] = "%r9w";
+	interpreter->w_registers[2] = "%r10w";
+	interpreter->w_registers[3] = "%r11w";
+
 	interpreter->output = output;
 	interpreter->label = 0;
 	list_new(&interpreter->symbols, sizeof(Symbol));
@@ -480,6 +492,33 @@ s32 cg_address(Interpreter* interpreter, const char* name) {
 	return r;
 }
 
+s32 cg_deref_array(Interpreter* interpreter, s32 offset_reg, s32 reg, s32 size) {
+	fprintf(interpreter->output, "\t# cg_deref_array\n");
+
+	// Get the offset from the base of the array.
+	fprintf(interpreter->output, "\timulq\t$%ld, %s\n",
+			size,
+			interpreter->registers[offset_reg]);
+	// Add the offset to the base address.
+	fprintf(interpreter->output, "\taddq\t%s, %s\n",
+			interpreter->registers[offset_reg],
+			interpreter->registers[reg]);
+	// Dereference 64bits of data.
+	fprintf(interpreter->output, "\tmovq\t(%s), %s\n",
+			interpreter->registers[reg],
+			interpreter->registers[reg]);
+
+	// Mask of the bits we don't need
+	if (size * 8 != 0) {
+		// This is probably very bad and inefficient, but it discards the part of
+		// the register that we don't care about.
+		cg_shlconst(interpreter, reg, 64 - (size * 8));
+		cg_shrconst(interpreter, reg, 64 - (size * 8));
+	}
+	free_register(interpreter, offset_reg);
+	return reg;
+
+}
 s32 cg_deref(Interpreter* interpreter, s32 reg, s32 size) {
 	// Symbol* symbol = findglobsym(interpreter, name);
 	// assert(symbol != NULL);
@@ -563,6 +602,8 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 	}
 
 	switch (node->node_type) {
+		case AST_ARRAY_INDEX:
+			return cg_deref_array(interpreter, rightreg, leftreg, node->left->type.size);
 		case AST_DEREF:
 			if (parent->node_type != AST_ASSIGN) {
 				return cg_deref(interpreter, rightreg, node->type.size);
@@ -687,11 +728,21 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				}
 				return -1;
 			}
-			return cg_loadglob(interpreter, name);
+
+			if (node->type.flags & TYPE_ARRAY) {
+				return cg_address(interpreter, name);
+			} else {
+				return cg_loadglob(interpreter, name);
+			}
+
 		case AST_ASSIGN:
 			switch (node->left->node_type) {
 				case AST_IDENT:
 					reg = cg_storglob(interpreter, leftreg, node->left->token.name);
+					break;
+				case AST_ARRAY_INDEX:
+					// @ToDo
+					assert(false);
 					break;
 				case AST_DEREF:
 					reg = cg_storderef(interpreter, rightreg, leftreg, node->left->right->token.name);

@@ -1019,7 +1019,7 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 
 	#if PARSER_DEFINED_CHECK
 	// It is defined for sure. We now need to update its type.
-	if (ast_result.node->node_type == AST_IDENT) {
+	if (ast_result.node->node_type == AST_IDENT || ast_result.node->node_type == AST_LVIDENT) {
 		Type* type = map_get(&parser->symbols, ast_result.node->token.name);
 		ast_result.node->type = *type;
 	}

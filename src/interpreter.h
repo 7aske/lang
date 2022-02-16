@@ -37,6 +37,7 @@ typedef struct interpreter {
 	char* registers[VM_REG_SIZE];
 	char* b_registers[VM_REG_SIZE];
 	char* d_registers[VM_REG_SIZE];
+	char* w_registers[VM_REG_SIZE];
 	List  symbols; // @Optimization this should be by all means a hash table
 	s32   label;
 } Interpreter;
