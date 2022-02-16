@@ -60,8 +60,13 @@ static const Type primitive_types[] = {
 	// @ToDo float64
 	{.name="float",.size=TYPE_LONG_SIZE,  .type=&type_type, .elements=1, .flags=TYPE_PRIMITIVE|TYPE_UNSIGNED|TYPE_DECIMAL },
 };
+
+static const Type builtin_types[] = {
+	{.name="string", .size=TYPE_LONG_SIZE, .type=&type_type, .elements=0, .flags=TYPE_IMMUTABLE|TYPE_POINTER},
+};
 // @formatter:on
 
+#define BUILTIN_TYPES_LEN   (sizeof(builtin_types)/sizeof(Type))
 #define PRIMITIVE_TYPES_LEN (sizeof(primitive_types)/sizeof(Type))
 
 const Type* resolve_primitive_type(const char* iden);

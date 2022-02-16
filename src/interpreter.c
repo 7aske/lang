@@ -29,13 +29,13 @@ void freeall_registers(Interpreter* interpreter) {
 // Shift a register left by a constant
 s32 cg_shlconst(Interpreter* interpreter, s32 r, s32 val) {
 	fprintf(interpreter->output, "\tsalq\t$%ld, %s\n", val, interpreter->registers[r]);
-	return(r);
+	return (r);
 }
 
 // Shift a register left by a constant
 s32 cg_shrconst(Interpreter* interpreter, s32 r, s32 val) {
 	fprintf(interpreter->output, "\tsarq\t$%ld, %s\n", val, interpreter->registers[r]);
-	return(r);
+	return (r);
 }
 
 // Allocate a free register. Return the number of
@@ -118,7 +118,7 @@ s32 cg_sub(Interpreter* interpreter, s32 r1, s32 r2) {
 // Multiply two registers together and return
 // the number of the register with the result
 s32 cg_mul(Interpreter* interpreter, s32 r1, s32 r2) {
-	VERIFY_REGISTERS(__FUNCTION__ , r1, r2);
+	VERIFY_REGISTERS(__FUNCTION__, r1, r2);
 	fprintf(interpreter->output, "\t# cg_mul\n");
 	fprintf(interpreter->output, "\timulq\t%s, %s\n",
 			interpreter->registers[r1],
@@ -211,13 +211,22 @@ void cg_globsym(Interpreter* interpreter, const char* name, Type type) {
 	fprintf(interpreter->output, "\t.data\n" "\t.globl\t%s\n", name);
 	fprintf(interpreter->output, "%s:\n", name);
 
-	for (int i=0; i < type.elements; i++) {
-		switch(type.size) {
-			case 1: fprintf(interpreter->output, "\t.byte\t0\n"); break;
-			case 2: fprintf(interpreter->output, "\t.word\t0\n"); break;
-			case 4: fprintf(interpreter->output, "\t.long\t0\n"); break;
-			case 8: fprintf(interpreter->output, "\t.quad\t0\n"); break;
-			default: fatalf("Unknown typesize in cg_globsym: %d", size);
+	for (int i = 0; i < type.elements; i++) {
+		switch (type.size) {
+			case 1:
+				fprintf(interpreter->output, "\t.byte\t0\n");
+				break;
+			case 2:
+				fprintf(interpreter->output, "\t.word\t0\n");
+				break;
+			case 4:
+				fprintf(interpreter->output, "\t.long\t0\n");
+				break;
+			case 8:
+				fprintf(interpreter->output, "\t.quad\t0\n");
+				break;
+			default:
+				fatalf("Unknown typesize in cg_globsym: %d", size);
 		}
 	}
 }
@@ -254,7 +263,7 @@ s32 cg_loadglob(Interpreter* interpreter, const char* name) {
 	assert(symbol != NULL);
 
 	// Print out the code to initialize it
-	if (symbol->type.size >= TYPE_INT_SIZE){
+	if (symbol->type.size >= TYPE_INT_SIZE) {
 		fprintf(interpreter->output, "\tmovq\t%s(%%rip), %s\n",
 				name, interpreter->registers[r]);
 	} else {
@@ -509,6 +518,7 @@ s32 cg_deref_array(Interpreter* interpreter, s32 offset_reg, s32 reg, s32 size) 
 	return reg;
 
 }
+
 s32 cg_deref(Interpreter* interpreter, s32 reg, s32 size) {
 	// Symbol* symbol = findglobsym(interpreter, name);
 	// assert(symbol != NULL);
@@ -527,6 +537,33 @@ s32 cg_deref(Interpreter* interpreter, s32 reg, s32 size) {
 		cg_shrconst(interpreter, reg, 64 - (size * 8));
 	}
 	return reg;
+}
+
+s32 cg_globstr(Interpreter* interpreter, char* name, char* value) {
+	char* cptr;
+
+	fprintf(interpreter->output, "%s:\n", name);
+	for (cptr = value; *cptr; cptr++) {
+		fprintf(interpreter->output, "\t.byte\t%d\n", *cptr);
+	}
+	// Terminate string.
+	fprintf(interpreter->output, "\t.byte\t0\n");
+}
+
+// Given the label number of a global string,
+// load its address into a new register.
+s32 cg_loadglobstr(Interpreter* interpreter, char*name) {
+	// Get a new register
+	s32 reg = alloc_register(interpreter);
+	fprintf(interpreter->output, "\tleaq\t%s(%%rip), %s\n",
+			name,
+			interpreter->registers[reg]);
+	return (reg);
+}
+
+s32 cg_genglobstr(Interpreter* interpreter, char* name, char* value) {
+	cg_globstr(interpreter, name, value);
+	return -1;
 }
 
 // Store through a dereferenced pointer
@@ -561,6 +598,8 @@ s32 cg_storderef(Interpreter* interpreter, s32 r1, s32 r2, const char* name) {
 
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
 	s32 leftreg, rightreg, retreg;
+	// Pains me to hack literal strings like this
+	char buf[64];
 	const char* name;
 	if (node->node_type == AST_IF) {
 		return interpreter_decode_if(interpreter, node, reg, parent);
@@ -768,13 +807,20 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				case TOK_TRUE:
 				case TOK_FALSE:
 					return cg_load(interpreter, node->token.integer_value);
-				case TOK_LIT_FLT:
-					break;
-				case TOK_LIT_STR:
-					// @Todo ADDR
-					break;
 				case TOK_NULL:
 					return cg_load(interpreter, 0);
+				case TOK_LIT_FLT:
+					// @Todo ADDR
+					assert(false);
+					break;
+				case TOK_LIT_STR:
+					// @Refactor magic number.
+					snprintf(buf, 64, "S%ld", node->label);
+					if (findglob(interpreter, buf) == -1) {
+						cg_genglobstr(interpreter, buf, node->token.string_value.data);
+					}
+					reg = cg_loadglobstr(interpreter, buf);
+					return reg;
 			}
 			break;
 	}

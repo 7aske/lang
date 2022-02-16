@@ -113,6 +113,7 @@ typedef struct parser {
 	Stack node_stack;
 	Stack function_stack;
 	Stack scopes;
+	s32   str_label;
 	// @formatter:on
 } Parser;
 
@@ -400,6 +401,7 @@ Scope* parser_push_scope(Parser* parser);
 bool   parser_pop_scope(Parser* parser, Scope* dest);
 bool   parser_is_defined(Parser* parser, const char* var_name);
 Ast_Result parse_array_index(Parser* p_parser, Token** p_token);
+s32 parser_get_str_label(Parser* parser);
 
 const Type* resolve_pointer_type(Ast_Node* node);
 

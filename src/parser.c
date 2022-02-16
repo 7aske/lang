@@ -864,7 +864,9 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	// If the assignment is happening between a type decl that is not defining
 	// a pointer and an address node we fail.
 	if (result.node->left->node_type == AST_TYPE_DECL) {
-		if (!(result.node->left->right->type.flags & TYPE_POINTER) == (result.node->right->node_type == AST_ADDR)) {
+		if (!(result.node->left->right->type.flags & TYPE_POINTER) ==
+			(result.node->right->node_type == AST_ADDR ||
+			 (result.node->right->node_type == AST_LITERAL && result.node->right->token.type == TOK_LIT_STR))) {
 			REPORT_ERROR(&result.node->token, "Cannot assign an address to a non-pointer type.");
 			result.error = AST_ERROR;
 			return result;
@@ -942,6 +944,7 @@ void parser_report_error(Parser* parser, Token* token, const char* format, ...) 
 inline void parser_new(Parser* parser, char* code) {
 	parser->code.size = strlen(code);
 	parser->code.text = code;
+	parser->str_label = 0;
 	list_new(&parser->errors, sizeof(Parser_Error_Report));
 	stack_new(&parser->node_stack, sizeof(Ast_Result));
 	stack_new(&parser->function_stack, sizeof(Ast_Node*));
@@ -949,6 +952,11 @@ inline void parser_new(Parser* parser, char* code) {
 	map_new(&parser->symbols, sizeof(Type));
 	for (int i = 1; i < PRIMITIVE_TYPES_LEN; ++i) {
 		Type* type = &primitive_types[i];
+		map_put(&parser->symbols, type->name, type);
+	}
+
+	for (int i = 0; i < BUILTIN_TYPES_LEN; ++i) {
+		Type* type = &builtin_types[i];
 		map_put(&parser->symbols, type->name, type);
 	}
 }
@@ -1026,6 +1034,7 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 	}
 	#endif
 
+
 	ast_result.node= ast_node_new(NEXT_TOKEN(token));
 
 	#if PARSER_DEFINED_CHECK
@@ -1035,6 +1044,10 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 		ast_result.node->type = *type;
 	}
 	#endif
+
+	if (ast_result.node->token.type == TOK_LIT_STR) {
+		ast_result.node->label = parser_get_str_label(parser);
+	}
 
 	stack_push(&parser->node_stack, &ast_result);
 	return ast_result;
@@ -1048,6 +1061,10 @@ Ast_Result parser_create_node_no_inc(Parser* parser, Token* token) {
 
 	stack_push(&parser->node_stack, &ast_result);
 	return ast_result;
+}
+
+inline s32 parser_get_str_label(Parser* parser) {
+	return parser->str_label++;
 }
 
 inline Scope* parser_peek_scope(Parser* parser) {

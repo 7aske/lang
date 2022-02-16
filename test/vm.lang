@@ -1,5 +1,6 @@
 // for now we support only global variables
 arr:s8[32];
+str:*s8 = "Hello World!\n";
 a:s64 = 5;
 b:s32;
 c:*s8;
@@ -7,6 +8,10 @@ d:s32;
 i:s32;
 
 fn main() {
+	printhex(str);
+
+	return 1;
+
 	a = 5;
 	b = 6 + 5;
 

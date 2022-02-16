@@ -13,6 +13,7 @@
 #include "ast.h"
 #include "type.h"
 #include "util.h"
+#include "map.h"
 
 #define VM_REG_SIZE 4
 

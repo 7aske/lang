@@ -113,6 +113,7 @@ typedef struct ast_node {
 	Type type;
 	Ast_Node_Type node_type;
 	Token token;
+	s32 label;
 } Ast_Node;
 
 /**
