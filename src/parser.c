@@ -532,6 +532,17 @@ Ast_Result parse_prefix(Parser* parser, Token** token) {
 	}
 	ast_result.node->right = ast_right_result.node;
 
+	if (curr_tok->type == TOK_STAR) {
+		ast_result.node->type = ast_result.node->right->type;
+		ast_result.node->type.ptr_size = ast_result.node->type.size;
+		ast_result.node->type.size = TYPE_LONG_SIZE;
+		ast_result.node->type.flags = TYPE_POINTER;
+	} else if (curr_tok->type == TOK_AMP) {
+		// Hideous
+		ast_result.node->type = primitive_types[11];
+		ast_result.node->type.size = TYPE_LONG_SIZE;
+	}
+
 	PARSER_PUSH(&ast_result);
 
 	return ast_result;

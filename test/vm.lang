@@ -8,9 +8,9 @@ d:s32;
 i:s32;
 
 fn main() {
-	printhex(str);
-
-	return 1;
+	// printhex(str);
+	//
+	// return 1;
 
 	a = 5;
 	b = 6 + 5;
@@ -25,7 +25,7 @@ fn main() {
 	i = 0;
 
 	while i < 32 {
-		arr[i] = i;
+		arr[i] = i + 1;
 		++i;
 	}
 

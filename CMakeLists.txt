@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD 11)
 set(SOURCE_FILES
         src/ast.c
         src/ast.h
+        src/codegen_x86.c
         src/interpreter.c
         src/interpreter.h
         src/lexer.c
