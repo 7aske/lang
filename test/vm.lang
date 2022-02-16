@@ -1,9 +1,10 @@
 // for now we support only global variables
-arr:s16[32];
+arr:s8[32];
 a:s64 = 5;
 b:s32;
 c:*s8;
 d:s32;
+i:s32;
 
 fn main() {
 	a = 5;
@@ -16,14 +17,22 @@ fn main() {
 	d = *c + 1;
 	d = d + 1;
 
-	arr[0] = 65;
+	i = 0;
 
-	printhex(arr[0]);
-	printhex(arr[1]);
-	printhex(arr[2]);
+	while i < 32 {
+		arr[i] = i;
+		++i;
+	}
 
-	arr = 77;
+	i = 0;
+
+	while i < 32 {
+		printhex(arr[i]);
+		++i;
+	}
+
 	return 2;
+	arr = 77;
 	*c = *c * 3;
 
 	while a > 10 {

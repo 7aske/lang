@@ -50,6 +50,7 @@
 
 // Utility to push an element to the parser node stack.
 #define PARSER_PUSH(src) stack_push(&parser->node_stack, src)
+#define PARSER_PEEK(src) stack_peek(&parser->node_stack)
 
 // Utility to pop and element from the parser node stack.
 #define FUNCTION_POP(dest) stack_pop(&parser->function_stack, dest)
@@ -398,6 +399,7 @@ Scope* parser_peek_scope(Parser* parser);
 Scope* parser_push_scope(Parser* parser);
 bool   parser_pop_scope(Parser* parser, Scope* dest);
 bool   parser_is_defined(Parser* parser, const char* var_name);
+Ast_Result parse_array_index(Parser* p_parser, Token** p_token);
 
 const Type* resolve_pointer_type(Ast_Node* node);
 

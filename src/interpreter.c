@@ -465,6 +465,7 @@ void cg_funcpostamble(Interpreter* interpreter) {
 
 s32 cg_funccall(Interpreter* interpreter, s32 reg, const char* name) {
 	s32 retreg = alloc_register(interpreter);
+	fprintf(interpreter->output, "\t# cg_funccall\n");
 	if (reg != -1)
 		fprintf(interpreter->output, "\tmovq\t%s, %%rdi\n",
 				interpreter->registers[reg]);
@@ -479,6 +480,7 @@ s32 cg_funccall(Interpreter* interpreter, s32 reg, const char* name) {
 
 void cg_return(Interpreter* interpreter, s32 reg, Symbol* symbol) {
 	// @ToDo type size of return
+	fprintf(interpreter->output, "\t# cg_return\n");
 	fprintf(interpreter->output, "\tmovq\t%s, %%rax\n",
 			interpreter->registers[reg]);
 	cg_jump(interpreter, symbol->end_label);
@@ -503,6 +505,15 @@ s32 cg_deref_array(Interpreter* interpreter, s32 offset_reg, s32 reg, s32 size) 
 	fprintf(interpreter->output, "\taddq\t%s, %s\n",
 			interpreter->registers[offset_reg],
 			interpreter->registers[reg]);
+	free_register(interpreter, offset_reg);
+	return reg;
+
+}
+s32 cg_deref(Interpreter* interpreter, s32 reg, s32 size) {
+	// Symbol* symbol = findglobsym(interpreter, name);
+	// assert(symbol != NULL);
+
+	fprintf(interpreter->output, "\t# cg_deref\n");
 	// Dereference 64bits of data.
 	fprintf(interpreter->output, "\tmovq\t(%s), %s\n",
 			interpreter->registers[reg],
@@ -515,26 +526,17 @@ s32 cg_deref_array(Interpreter* interpreter, s32 offset_reg, s32 reg, s32 size) 
 		cg_shlconst(interpreter, reg, 64 - (size * 8));
 		cg_shrconst(interpreter, reg, 64 - (size * 8));
 	}
-	free_register(interpreter, offset_reg);
 	return reg;
-
 }
-s32 cg_deref(Interpreter* interpreter, s32 reg, s32 size) {
-	// Symbol* symbol = findglobsym(interpreter, name);
-	// assert(symbol != NULL);
 
-	fprintf(interpreter->output, "\t# cg_deref\n");
-	size = (size > TYPE_CHAR_SIZE ? TYPE_LONG_SIZE : TYPE_CHAR_SIZE);
-	if (size > 1) {
-		fprintf(interpreter->output, "\tmovq\t(%s), %s\n",
-				interpreter->registers[reg],
-				interpreter->registers[reg]);
-	} else {
-		fprintf(interpreter->output, "\tmovzbq\t(%s), %s\n",
-				interpreter->registers[reg],
-				interpreter->registers[reg]);
-	}
-	return reg;
+// Store through a dereferenced pointer
+s32 cg_storderef_array(Interpreter* interpreter, s32 r1, s32 r2, Type* type) {
+	fprintf(interpreter->output, "\t# cg_storderef_array\n");
+	fprintf(interpreter->output, "\tmovq\t%s, (%s)\n",
+			interpreter->registers[r1],
+			interpreter->registers[r2]);
+	free_register(interpreter, r2);
+	return (r1);
 }
 
 // Store through a dereferenced pointer
@@ -543,6 +545,7 @@ s32 cg_storderef(Interpreter* interpreter, s32 r1, s32 r2, const char* name) {
 	assert(symbol != NULL);
 
 	fprintf(interpreter->output, "\t# cg_storderef\n");
+	// @Temporary get type from the node
 	if (symbol->type.size > 1) {
 		fprintf(interpreter->output, "\tmovq\t%s, (%s)\n",
 				interpreter->registers[r1],
@@ -552,6 +555,7 @@ s32 cg_storderef(Interpreter* interpreter, s32 r1, s32 r2, const char* name) {
 				interpreter->b_registers[r1],
 				interpreter->registers[r2]);
 	}
+	free_register(interpreter, r2);
 	return (r1);
 }
 
@@ -603,7 +607,12 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 
 	switch (node->node_type) {
 		case AST_ARRAY_INDEX:
-			return cg_deref_array(interpreter, rightreg, leftreg, node->left->type.size);
+			reg = cg_deref_array(interpreter, rightreg, leftreg, node->left->type.size);
+			if (parent->node_type == AST_ASSIGN) {
+				return reg;
+			} else {
+				return cg_deref(interpreter, reg, node->left->type.size);
+			}
 		case AST_DEREF:
 			if (parent->node_type != AST_ASSIGN) {
 				return cg_deref(interpreter, rightreg, node->type.size);
@@ -741,8 +750,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 					reg = cg_storglob(interpreter, leftreg, node->left->token.name);
 					break;
 				case AST_ARRAY_INDEX:
-					// @ToDo
-					assert(false);
+					reg = cg_storderef_array(interpreter, rightreg, leftreg, &node->left->type);
 					break;
 				case AST_DEREF:
 					reg = cg_storderef(interpreter, rightreg, leftreg, node->left->right->token.name);

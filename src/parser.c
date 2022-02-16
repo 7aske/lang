@@ -7,8 +7,6 @@
 
 #include "parser.h"
 
-Ast_Result parse_array_index(Parser* p_parser, Token** p_token);
-
 Ast_Result parse_boolean_node(Parser* parser, Token** token) {
 	assert((*token)->type == TOK_AND || (*token)->type == TOK_OR);
 	Ast_Result left_ast_result;
@@ -577,8 +575,8 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	} else if (IS_CURR_OF_TYPE(token, TOK_STAR)
 			   || IS_CURR_OF_TYPE(token, TOK_AMP)) {
 		ast_result = parse_prefix(parser, token);
-
-		// Safety check. We don't allow referencing non-pointer types.
+		// @Warning this way of parsing will break future binary AND operator.
+		// @Note Safety check. We don't allow referencing non-pointer types.
 		#if PARSER_DEFINED_CHECK
 		if (ast_result.node->node_type == AST_DEREF) {
 			if (!(ast_result.node->right->type.flags & TYPE_POINTER)) {
@@ -617,7 +615,18 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 		// we can allow undefined identifiers for function calls.
 		parser_create_node_no_inc(parser, NEXT_TOKEN(token));
 		ast_result = parse_function_call(parser, token);
-	} else if (!IS_CURR_OF_TYPE(token, TOK_RPAREN)) {
+	} else if (
+		IS_CURR_OF_TYPE(token, TOK_LIT_INT)
+		|| IS_CURR_OF_TYPE(token, TOK_LIT_FLT)
+		|| IS_CURR_OF_TYPE(token, TOK_LIT_CHR)
+		|| IS_CURR_OF_TYPE(token, TOK_LIT_STR)
+		|| IS_CURR_OF_TYPE(token, TOK_IDEN)
+		|| IS_CURR_OF_TYPE(token, TOK_TRUE)
+		|| IS_CURR_OF_TYPE(token, TOK_FALSE)
+		|| IS_CURR_OF_TYPE(token, TOK_NULL)
+		|| IS_CURR_OF_TYPE(token, TOK_INC)
+		|| IS_CURR_OF_TYPE(token, TOK_DEC)
+		) {
 		ast_result = parse_prefix(parser, token);
 		// ast_result = parser_create_node(parser, token);
 	}
@@ -700,6 +709,8 @@ Ast_Result parse_array_index(Parser* parser, Token** token) {
 	} else {
 		NEXT_TOKEN(token);
 	}
+
+	PARSER_PUSH(&result);
 
 	return result;
 }
