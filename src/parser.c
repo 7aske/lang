@@ -183,6 +183,20 @@ Ast_Result parse_while_statement(Parser* parser, Token** token) {
 	Ast_Result middle_ast_result = parse_expression(parser, token);
 	ast_result.node->middle = middle_ast_result.node;
 
+	// Adjust AST to parse non-boolean expressions.
+	if (ast_result.node->middle->node_type != AST_BOOLEAN && ast_result.node->middle->node_type != AST_RELATIONAL) {
+		Ast_Result ast_equal_node;
+		Token t = **token;
+		t.type = TOK_NE;
+		ast_equal_node = parser_create_node_no_inc(parser, &t);
+		ast_equal_node.node->left = ast_result.node->middle;
+		t.type = TOK_LIT_INT;
+		t.integer_value = 0;
+		Ast_Result ast_right_node = parser_create_node_no_inc(parser, &t);
+		ast_equal_node.node->right = ast_right_node.node;
+		ast_result.node->middle = ast_equal_node.node;
+	}
+
 	// @Temporary
 	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {
 		REPORT_ERROR(*token, "Expected token `{`");
@@ -431,6 +445,20 @@ Ast_Result parse_if_statement(Parser* parser, Token** token) {
 	}
 
 	ast_result.node->middle = middle_ast_result.node;
+
+	// Adjust AST to parse non-boolean expressions.
+	if (ast_result.node->middle->node_type != AST_BOOLEAN && ast_result.node->middle->node_type != AST_RELATIONAL) {
+		Ast_Result ast_equal_node;
+		Token t = **token;
+		t.type = TOK_NE;
+		ast_equal_node = parser_create_node_no_inc(parser, &t);
+		ast_equal_node.node->left = ast_result.node->middle;
+		t.type = TOK_LIT_INT;
+		t.integer_value = 0;
+		Ast_Result ast_right_node = parser_create_node_no_inc(parser, &t);
+		ast_equal_node.node->right = ast_right_node.node;
+		ast_result.node->middle = ast_equal_node.node;
+	}
 
 	// @Temporary
 	if (!IS_CURR_OF_TYPE(token, TOK_LBRACE)) {

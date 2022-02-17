@@ -70,6 +70,7 @@ s32 get_label(Interpreter* interpreter);
 // codegen
 // @formatter:off
 s32  cg_compare_jump(Interpreter* interpreter, Token_Type type, s32 r1, s32 r2, s32 label);
+s32 cg_compare_jump_constant(Interpreter* interpreter, Token_Type type, s32 reg, s64 val, s32 label);
 s32  cg_add(Interpreter* interpreter, s32 r1, s32 r2);
 s32  cg_address(Interpreter* interpreter, const char* name);
 s32  cg_compare(Interpreter* interpreter, s32 r1, s32 r2, char* op);

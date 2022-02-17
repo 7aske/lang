@@ -171,6 +171,19 @@ s32 cg_compare(Interpreter* interpreter, s32 r1, s32 r2, char* op) {
 	return (r2);
 }
 
+// Compare register with a constant
+s32 cg_compare_constant(Interpreter* interpreter, s32 reg, s64 val, char* op) {
+	fprintf(interpreter->output, "\t# cg_compare %s\n", op);
+	fprintf(interpreter->output, "\tcmpq\t%s, $%lld\n",
+			interpreter->registers[reg],
+			val);
+	fprintf(interpreter->output, "\t%s\t%s\n",
+			op, interpreter->b_registers[reg]);
+	fprintf(interpreter->output, "\tandq\t$255,%s\n",
+			interpreter->registers[reg]);
+	return (reg);
+}
+
 s32 cg_equal(Interpreter* interpreter, s32 r1, s32 r2) {
 	return (cg_compare(interpreter, r1, r2, "sete"));
 }
@@ -237,6 +250,21 @@ s32 cg_compare_jump(Interpreter* interpreter, Token_Type type, s32 r1, s32 r2, s
 	freeall_registers(interpreter);
 	return (-1);
 }
+
+// Compare two registers and jump if false.
+s32 cg_compare_jump_constant(Interpreter* interpreter, Token_Type type, s32 reg, s64 val, s32 label) {
+	s32 op = type - TOK_EQ;
+	fprintf(interpreter->output, "\t# cg_compare_jump\n");
+	fprintf(interpreter->output, "\tcmpq\t%s, $%lld\n",
+			interpreter->registers[reg],
+			val);
+	fprintf(interpreter->output, "\t%s\tL%ld\n",
+			invcmplist[op],
+			label);
+	freeall_registers(interpreter);
+	return (-1);
+}
+
 void cg_funcpreamble(Interpreter* interpreter, const char* name) {
 	fprintf(interpreter->output, "# func decl\n");
 	fprintf(interpreter->output,

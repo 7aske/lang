@@ -10,7 +10,7 @@ fn main() {
 	d:s32;
 	i:s32;
 
-	while *ptr != 0 {
+	while *ptr {
 		printchar(*ptr);
 		++ptr;
 	}
