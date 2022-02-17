@@ -25,7 +25,7 @@ inline bool lexer_is_number(const char* ptr) {
 
 // Checks if the string starts with a valid quote for identifying a string.
 inline bool lexer_startof_string(const char* ptr) {
-	return *ptr == '\'' || *ptr == '"' || *ptr == '`';
+	return *ptr == '"' || *ptr == '`';
 }
 
 // Checks if the character starts with a valid quote for identifying a character literal
@@ -90,19 +90,47 @@ Lexer_Error lexer_eat_char(char** code, String_Buffer* string_buffer) {
 	return 1;
 }
 
+// @Refactor
 Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
-	char* ptr = *code;
-	char quote = *ptr++;
-	int quote_count = 1;
+	// @formatter:off
+	char* ptr   = *code;
+	char  quote = *ptr++;
+	s32 quote_count  = 1;
+	s32 escape_count = 0;
+	// @formatter:on
+
 	char c;
 	while (not_terminated(ptr)) {
 		c = *ptr;
+
 		// If it's the unescaped initial error of quote
-		if (c == quote && *(ptr - 1) != '\\') {
+		if (c == quote) {
 			quote_count++;
 			break;
-		} else if (c == quote) {
-			quote_count++;
+		}
+
+		if (c == '\\') {
+			c = *(ptr++ + 1);
+			escape_count++;
+			// @formatter:off
+			switch (c) {
+				case 'a':  c= '\a'; break;
+				case 'b':  c= '\b'; break;
+				case 'f':  c= '\f'; break;
+				case 'n':  c= '\n'; break;
+				case 'r':  c= '\r'; break;
+				case 't':  c= '\t'; break;
+				case 'v':  c= '\v'; break;
+				case '\\': c= '\\'; break;
+				case '"':
+				case '`':
+				case '\'':
+					quote_count += (c == quote);
+					break;
+				default:
+					goto fail;
+			}
+			// @formatter:on
 		}
 
 		string_buffer_append_char(string_buffer, c);
@@ -111,13 +139,13 @@ Lexer_Error lexer_eat_string(char** code, String_Buffer* string_buffer) {
 
 	// @Incomplete handle error for miss matched quotes
 	if (quote_count % 2 != 0) {
+		fail:
 		return LEXER_FAILED;
 	}
 
-	(*code) += string_buffer->count + quote_count;
+	(*code) += string_buffer->count + quote_count + escape_count;
 
-	return string_buffer->count + quote_count;
-
+	return string_buffer->count + quote_count + escape_count;
 }
 
 void lexer_token_new(Token* dest, Token_Type token, u32 code_size, u32 col, u32 row) {
