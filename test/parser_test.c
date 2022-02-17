@@ -4,12 +4,15 @@
 inline static Parser_Result PARSER_TEST_CASE(char* code) {
 	Parser parser;
 	Lexer lexer;
-	Type mock;
+	Type mock = {.size=8, .flags=5};
 	lexer_new(&lexer, code);
 	lexer_lex(&lexer);
 	parser_new(&parser, code);
 	map_put(&parser.symbols, "string", &mock);
 	map_put(&parser.symbols, "File", &mock);
+	char* mock_buffer = (char*) malloc(BUFSIZ);
+	FILE* mock_file  = fmemopen(mock_buffer, BUFSIZ, "w");
+	parser.output = mock_file;
 	parser.code.filename = __FILE__;
 	fprintf(stderr, "\n\nCODE: %s\n", code);
 	list_foreach(&lexer.tokens, Token*, {
@@ -18,6 +21,7 @@ inline static Parser_Result PARSER_TEST_CASE(char* code) {
 	Parser_Result retval = parser_parse(&parser, &lexer);
 	lexer_free(&lexer);
 	parser_free(&parser);
+	free(mock_buffer);
 	return retval;
 }
 
@@ -29,7 +33,7 @@ int main(void) {
 	result = PARSER_TEST_CASE("if true {1;} else {2;}");
 	root = *(Ast_Node**) list_get(&result.nodes, 0);
 	assert(root->node_type == AST_IF);
-	assert(root->middle->node_type == AST_LITERAL);
+	assert(root->middle->node_type == AST_EQUALITY);
 	assert(root->left->node_type == AST_BLOCK);
 	assert(list_get_as_deref(&root->left->nodes, 0, Ast_Node*)->node_type == AST_LITERAL);
 	assert(root->right->node_type == AST_BLOCK);
@@ -221,4 +225,10 @@ int main(void) {
 	assert(result.errors.count == 0);
 	root = *(Ast_Node**) list_get(&result.nodes, 1);
 	assert(root->node_type == AST_ARRAY_INDEX);
+
+	result = PARSER_TEST_CASE("a:s32; a++;");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 1);
+	assert(root->node_type == AST_IDENT);
+	assert(root->right->node_type == AST_POSTINC);
 }

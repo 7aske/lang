@@ -13,3 +13,12 @@ const Type* resolve_primitive_type(const char* iden) {
 	}
 	return NULL;
 }
+
+const Type* resolve_builtin_type(const char* iden) {
+	for (s32 i = 0; i < BUILTIN_TYPES_LEN; ++i) {
+		if (strcmp(builtin_types[i].name,iden) == 0) {
+			return &builtin_types[i];
+		}
+	}
+	return NULL;
+}

@@ -184,7 +184,9 @@ Ast_Result parse_while_statement(Parser* parser, Token** token) {
 	ast_result.node->middle = middle_ast_result.node;
 
 	// Adjust AST to parse non-boolean expressions.
-	if (ast_result.node->middle->node_type != AST_BOOLEAN && ast_result.node->middle->node_type != AST_RELATIONAL) {
+	if (ast_result.node->middle->node_type != AST_BOOLEAN
+		&& ast_result.node->middle->node_type != AST_EQUALITY
+		&& ast_result.node->middle->node_type != AST_RELATIONAL) {
 		Ast_Result ast_equal_node;
 		Token t = **token;
 		t.type = TOK_NE;
@@ -316,6 +318,10 @@ inline const Type* resolve_pointer_type(Ast_Node* node) {
 	const Type* type = NULL;
 	if (node->node_type == AST_IDENT) {
 		type = resolve_primitive_type(node->token.name);
+		if (!type) {
+			type = resolve_builtin_type(node->token.name);
+		}
+
 		if (type) {
 			memcpy(&node->type, type, sizeof(Type));
 		} else {
@@ -447,7 +453,9 @@ Ast_Result parse_if_statement(Parser* parser, Token** token) {
 	ast_result.node->middle = middle_ast_result.node;
 
 	// Adjust AST to parse non-boolean expressions.
-	if (ast_result.node->middle->node_type != AST_BOOLEAN && ast_result.node->middle->node_type != AST_RELATIONAL) {
+	if (ast_result.node->middle->node_type != AST_BOOLEAN
+		&& ast_result.node->middle->node_type != AST_EQUALITY
+		&& ast_result.node->middle->node_type != AST_RELATIONAL) {
 		Ast_Result ast_equal_node;
 		Token t = **token;
 		t.type = TOK_NE;
@@ -511,15 +519,16 @@ Ast_Result parse_block_node(Parser* parser, Token** token) {
 }
 
 
-Ast_Result parse_suffix(Parser* parser, Token** token) {
-	Ast_Result left_ast_result = parser_create_node(parser, token);
-	if (left_ast_result.error != AST_NO_ERROR) {
+Ast_Result parse_postfix(Parser* parser, Token** token) {
+	Ast_Result left_ast_result;
+	if (stack_is_empty(&parser->node_stack)) {
+		REPORT_ERROR(*token, "Unable parse postfix.");
 		left_ast_result.error = AST_ERROR;
 		return left_ast_result;
+	} else {
+		PARSER_POP(&left_ast_result);
 	}
 
-	// if (IS_CURR_OF_TYPE(token, TOK_INC)
-	// 	|| IS_CURR_OF_TYPE(token, TOK_DEC)) {
 	Ast_Result suffix_result = parser_create_node(parser, token);
 	if (suffix_result.error != AST_NO_ERROR) {
 		left_ast_result.error = AST_ERROR;
@@ -534,15 +543,9 @@ Ast_Result parse_suffix(Parser* parser, Token** token) {
 		suffix_result.node->node_type = AST_POSTINC;
 	}
 
-	suffix_result.node->right = left_ast_result.node;
+	left_ast_result.node->right = suffix_result.node;
 
-	PARSER_PUSH(&suffix_result);
-
-	return suffix_result;
-
-	// } else {
-	// 	return ast_result;
-	// }
+	return left_ast_result;
 }
 
 Ast_Result parse_prefix(Parser* parser, Token** token) {
@@ -699,6 +702,9 @@ Ast_Result parse_expression(Parser* parser, Token** token) {
 	} else if (IS_CURR_OF_TYPE(token, TOK_AND) ||
 			   IS_CURR_OF_TYPE(token, TOK_OR)) {
 		ast_result = parse_boolean_node(parser, token);
+	} else if (IS_CURR_OF_TYPE(token, TOK_INC)
+			   || IS_CURR_OF_TYPE(token, TOK_DEC)) {
+		ast_result = parse_postfix(parser, token);
 		// @formatter:off
 	} else if (IS_CURR_OF_TYPE(token, TOK_EQ)   ||
 			   IS_CURR_OF_TYPE(token, TOK_NE)   ||
@@ -910,12 +916,13 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	// If the assignment is happening between a type decl that is not defining
 	// a pointer and an address node we fail.
 	if (result.node->left->node_type == AST_TYPE_DECL) {
-		if ((result.node->left->right->type.flags & TYPE_POINTER
-			 || result.node->left->right->type.flags & TYPE_ARRAY)
-			!=
-			(result.node->right->type.flags & TYPE_POINTER
-			 || result.node->node_type == AST_ADDR
-			 || result.node->right->type.flags & TYPE_ARRAY)) {
+		s32 is_pointer = result.node->left->right->type.flags & TYPE_POINTER
+						 || result.node->left->right->type.flags & TYPE_ARRAY;
+
+		if (is_pointer && !(result.node->right->type.flags & TYPE_POINTER
+							|| result.node->right->type.flags & TYPE_ARRAY
+							|| result.node->right->node_type == AST_ADDR)) {
+
 			REPORT_ERROR(&result.node->token, "Cannot assign pointer-like type to a non-pointer-like type.");
 			result.error = AST_ERROR;
 			return result;

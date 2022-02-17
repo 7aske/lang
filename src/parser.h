@@ -396,7 +396,7 @@ Ast_Result parse_return_statement(Parser* parser, Token** token);
  * @return Ast_Result of parsed prefix node.
  */
 Ast_Result parse_prefix(Parser* parser, Token** token);
-Ast_Result parse_suffix(Parser* parser, Token** token);
+Ast_Result parse_postfix(Parser* parser, Token** token);
 Scope* parser_peek_scope(Parser* parser);
 Scope* parser_push_scope(Parser* parser);
 bool   parser_pop_scope(Parser* parser, Scope* dest);

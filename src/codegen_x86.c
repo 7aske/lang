@@ -126,13 +126,27 @@ s32 cg_storglob(Interpreter* interpreter, s32 r, const char* name, Type* type) {
 	if (r == -1) return r;
 	fprintf(interpreter->output, "\t# cg_storglob\n");
 
-	if (type->size >= TYPE_INT_SIZE) {
-		fprintf(interpreter->output, "\tmovq\t%s, %s(%%rip)\n",
-				interpreter->registers[r], name);
-	} else {
-		fprintf(interpreter->output, "\tmovb\t%s, %s(%%rip)\n",
-				interpreter->b_registers[r], name);
+	switch (type->size) {
+		case 1:
+			fprintf(interpreter->output, "\tmovb\t%s, %s(%%rip)\n",
+					interpreter->b_registers[r], name);
+			break;
+		case 2:
+			fprintf(interpreter->output, "\tmovw\t%s, %s(%%rip)\n",
+					interpreter->w_registers[r], name);
+			break;
+		case 4:
+			fprintf(interpreter->output, "\tmov\t%s, %s(%%rip)\n",
+					interpreter->d_registers[r], name);
+			break;
+		case 8:
+			fprintf(interpreter->output, "\tmovq\t%s, %s(%%rip)\n",
+					interpreter->registers[r], name);
+			break;
+		default:
+			fatalf("Unknown size in cg_storglob: %ld\n", type->size);
 	}
+
 	if (!interpreter->freereg[r]) {
 		free_register(interpreter, r);
 	}
@@ -144,17 +158,29 @@ s32 cg_storglob(Interpreter* interpreter, s32 r, const char* name, Type* type) {
 s32 cg_loadglob(Interpreter* interpreter, const char* name, Type* type) {
 	fprintf(interpreter->output, "\t# cg_loadglob\n");
 	// Get a new register
-	s32 r = alloc_register(interpreter);
+	s32 reg = alloc_register(interpreter);
 
-	// Print out the code to initialize it
-	if (type->size >= TYPE_INT_SIZE) {
-		fprintf(interpreter->output, "\tmovq\t%s(%%rip), %s\n",
-				name, interpreter->registers[r]);
-	} else {
-		fprintf(interpreter->output, "\tmovzbq\t%s(%%rip), %s\n",
-				name, interpreter->registers[r]);
+	switch (type->size) {
+		case 1:
+			fprintf(interpreter->output, "\tmovb\t%s(%%rip), %s\n",
+					name, interpreter->b_registers[reg]);
+			break;
+		case 2:
+			fprintf(interpreter->output, "\tmov\t%s(%%rip), %s\n",
+					name, interpreter->w_registers[reg]);
+			break;
+		case 4:
+			fprintf(interpreter->output, "\tmovl\t%s(%%rip), %s\n",
+					name, interpreter->d_registers[reg]);
+			break;
+		case 8:
+			fprintf(interpreter->output, "\tmovq\t%s(%%rip), %s\n",
+					name, interpreter->registers[reg]);
+			break;
+		default:
+			fatalf("Unknown size in cg_storderef_array: %ld", type->size);
 	}
-	return (r);
+	return (reg);
 }
 
 // Compare two registers.
@@ -379,9 +405,33 @@ s32 cg_genglobstr(Interpreter* interpreter, char* name, char* value) {
 // Store through a dereferenced pointer
 s32 cg_storderef_array(Interpreter* interpreter, s32 r1, s32 r2, Type* type) {
 	fprintf(interpreter->output, "\t# cg_storderef_array\n");
-	fprintf(interpreter->output, "\tmovq\t%s, (%s)\n",
-			interpreter->registers[r1],
-			interpreter->registers[r2]);
+	// Mask of the bits we don't need
+	// if (type->size * 8 != 0) {
+	// }
+	switch (type->size) {
+		case 1:
+			fprintf(interpreter->output, "\tmovb\t%s, (%s)\n",
+					interpreter->b_registers[r1],
+					interpreter->registers[r2]);
+			break;
+		case 2:
+			fprintf(interpreter->output, "\tmov\t%s, (%s)\n",
+					interpreter->w_registers[r1],
+					interpreter->registers[r2]);
+			break;
+		case 4:
+			fprintf(interpreter->output, "\tmovl\t%s, (%s)\n",
+					interpreter->d_registers[r1],
+					interpreter->registers[r2]);
+			break;
+		case 8:
+			fprintf(interpreter->output, "\tmovq\t%s, (%s)\n",
+					interpreter->registers[r1],
+					interpreter->registers[r2]);
+			break;
+		default:
+			fatalf("Unknown size in cg_storderef_array: %ld", type->size);
+	}
 	free_register(interpreter, r2);
 	return (r1);
 }
@@ -389,15 +439,31 @@ s32 cg_storderef_array(Interpreter* interpreter, s32 r1, s32 r2, Type* type) {
 // Store through a dereferenced pointer
 s32 cg_storderef(Interpreter* interpreter, s32 r1, s32 r2, Type* type) {
 	fprintf(interpreter->output, "\t# cg_storderef\n");
-	if (type->size > 1) {
-		fprintf(interpreter->output, "\tmovq\t%s, (%s)\n",
-				interpreter->registers[r1],
-				interpreter->registers[r2]);
-	} else {
-		fprintf(interpreter->output, "\tmovb\t%s, (%s)\n",
-				interpreter->b_registers[r1],
-				interpreter->registers[r2]);
+	switch (type->ptr_size) {
+		case 1:
+			fprintf(interpreter->output, "\tmovb\t%s, (%s)\n",
+					interpreter->b_registers[r1],
+					interpreter->registers[r2]);
+			break;
+		case 2:
+			fprintf(interpreter->output, "\tmov\t%s, (%s)\n",
+					interpreter->w_registers[r1],
+					interpreter->registers[r2]);
+			break;
+		case 4:
+			fprintf(interpreter->output, "\tmovl\t%s, (%s)\n",
+					interpreter->d_registers[r1],
+					interpreter->registers[r2]);
+			break;
+		case 8:
+			fprintf(interpreter->output, "\tmovq\t%s, (%s)\n",
+					interpreter->registers[r1],
+					interpreter->registers[r2]);
+			break;
+		default:
+			fatalf("Unknown ptr_size in cg_storderef: %ld", type->ptr_size);
 	}
+
 	free_register(interpreter, r2);
 	return (r1);
 }

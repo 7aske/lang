@@ -189,6 +189,7 @@ s32 interpreter_decode_while(Interpreter* interpreter, Ast_Node* node, s32 reg, 
 
 s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_Node* parent) {
 	s32 leftreg, rightreg, retreg;
+	leftreg = rightreg = retreg = -1;
 	// Pains me to hack literal strings like this
 	char buf[64];
 	const char* name;
@@ -228,8 +229,6 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 		// parsing of the assignment node + node_type decl
 		if (node->node_type == AST_TYPE_DECL) {
 			leftreg = interpreter_decode(interpreter, node->left, reg, node);
-		} else if (node->node_type == AST_TYPE_DECL) {
-
 		} else {
 			leftreg = interpreter_decode(interpreter, node->left, rightreg, node);
 		}
@@ -244,10 +243,10 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				return cg_deref(interpreter, reg, node->left->type.size);
 			}
 		case AST_DEREF:
-			if (parent->node_type != AST_ASSIGN) {
-				return cg_deref(interpreter, rightreg, node->type.ptr_size);
+			if (parent->node_type == AST_ASSIGN && node->right->node_type == AST_LVIDENT) {
+				return rightreg;
 			} else {
-				return cg_loadglob(interpreter, resolve_pointer_var_name(node), &node->type);
+				return cg_deref(interpreter, rightreg, node->type.ptr_size);
 			}
 		case AST_ADDR:
 			return cg_address(interpreter, resolve_pointer_var_name(node));
@@ -324,7 +323,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 					reg = cg_mul(interpreter, leftreg, rightreg);
 					break;
 			}
-			return cg_storglob(interpreter, reg, name, &node->type);
+			return cg_storglob(interpreter, reg, name, &node->left->type);
 		case AST_ARITHMETIC:
 			switch (node->token.type) {
 				case TOK_ADD:
@@ -341,6 +340,9 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			return reg;
 		case AST_LVIDENT:
 			name = node->token.name;
+			if (parent->node_type == AST_DEREF) {
+				return cg_loadglob(interpreter, name, &node->type);
+			}
 			if (findglob(interpreter, name) == -1) {
 				addglob(interpreter, name, node->type);
 				// cg_globsym(interpreter, name, node->type);
@@ -370,14 +372,13 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			} else {
 				return cg_loadglob(interpreter, name, &node->type);
 			}
-
 		case AST_ASSIGN:
 			switch (node->left->node_type) {
 				case AST_IDENT:
 					reg = cg_storglob(interpreter, leftreg, node->left->token.name, &node->type);
 					break;
 				case AST_ARRAY_INDEX:
-					reg = cg_storderef_array(interpreter, rightreg, leftreg, &node->left->type);
+					reg = cg_storderef_array(interpreter, rightreg, leftreg, &node->left->left->type);
 					break;
 				case AST_DEREF:
 					reg = cg_storderef(interpreter, rightreg, leftreg, &node->left->right->type);
@@ -429,10 +430,12 @@ s32 cg_dec(Interpreter* interpreter, s32 reg, u32 size) {
 }
 
 inline void fatalf(char* format, ...) {
+	COLOR(TEXT_RED);
 	va_list valist;
 	va_start(valist, format);
 	vfprintf(stderr, format, valist);
 	va_end(valist);
+	CLEAR;
 	assert(false);
 	exit(EXIT_FAILURE);
 }

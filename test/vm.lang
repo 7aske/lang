@@ -16,8 +16,6 @@ fn main() {
 	}
 	printstr(str);
 
-	return 1;
-
 	a = 5;
 	b = 6 + 5;
 
@@ -42,9 +40,7 @@ fn main() {
 		++i;
 	}
 
-	return 2;
 	arr = 77;
-	*c = *c * 3;
 
 	while a > 10 {
 		--a;

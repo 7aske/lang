@@ -70,5 +70,6 @@ static const Type builtin_types[] = {
 #define PRIMITIVE_TYPES_LEN (sizeof(primitive_types)/sizeof(Type))
 
 const Type* resolve_primitive_type(const char* iden);
+const Type* resolve_builtin_type(const char* iden);
 
 #endif //LANG_TYPE_H
