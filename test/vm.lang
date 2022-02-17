@@ -14,6 +14,7 @@ fn main() {
 		printchar(*ptr);
 		++ptr;
 	}
+	printstr(str);
 
 	return 1;
 

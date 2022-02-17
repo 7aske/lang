@@ -14,3 +14,7 @@ void printhex(long i){
 void printchar(char c){
 	printf("%c", (char)c);
 }
+
+void printstr(char* c) {
+	printf("%s", c);
+}
