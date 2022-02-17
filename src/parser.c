@@ -171,7 +171,7 @@ Ast_Result parse_return_statement(Parser* parser, Token** token) {
 	}
 
 	result.node->right = right_result.node;
-	result.node->middle = *(Ast_Node**)FUNCTION_PEEK();
+	result.node->middle = *(Ast_Node**) FUNCTION_PEEK();
 
 	return result;
 }
@@ -392,7 +392,7 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	}
 
 	if (type_result.error != AST_NO_ERROR) {
-			type_decl_result.error = AST_ERROR;
+		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	}
 
@@ -410,12 +410,12 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	#if PARSER_DEFINED_CHECK
 	if (parser_is_defined(parser, type_decl_result.node->left->token.name)) {
 		REPORT_ERROR(&type_decl_result.node->left->token,
-							"Identifier `%s` is already defined.",
-							type_decl_result.node->left->token.name);
+					 "Identifier `%s` is already defined.",
+					 type_decl_result.node->left->token.name);
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
 	} else
-	#endif
+		#endif
 	{
 		// Global variable declaration
 		parser_cg_globsym(parser,
@@ -426,8 +426,8 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	// After resolving the type. We put it in the variable map.
 	map_put(&parser->symbols, iden_result.node->token.name, &iden_result.node->type);
 	map_put(&parser_peek_scope(parser)->variables,
-			  type_decl_result.node->left->token.name,
-			  &type_decl_result.node->right->type);
+			type_decl_result.node->left->token.name,
+			&type_decl_result.node->right->type);
 
 	PARSER_PUSH(&type_decl_result);
 
@@ -520,25 +520,25 @@ Ast_Result parse_suffix(Parser* parser, Token** token) {
 
 	// if (IS_CURR_OF_TYPE(token, TOK_INC)
 	// 	|| IS_CURR_OF_TYPE(token, TOK_DEC)) {
-		Ast_Result suffix_result = parser_create_node(parser, token);
-		if (suffix_result.error != AST_NO_ERROR) {
-			left_ast_result.error = AST_ERROR;
-			return left_ast_result;
-		}
+	Ast_Result suffix_result = parser_create_node(parser, token);
+	if (suffix_result.error != AST_NO_ERROR) {
+		left_ast_result.error = AST_ERROR;
+		return left_ast_result;
+	}
 
-		// parser_create_node is dumb, and it will always create a node with the
-		// type of the pre inc/dec.
-		if (suffix_result.node->node_type == AST_PREDEC) {
-			suffix_result.node->node_type = AST_POSTDEC;
-		} else if (suffix_result.node->node_type == AST_PREINC) {
-			suffix_result.node->node_type = AST_POSTINC;
-		}
+	// parser_create_node is dumb, and it will always create a node with the
+	// type of the pre inc/dec.
+	if (suffix_result.node->node_type == AST_PREDEC) {
+		suffix_result.node->node_type = AST_POSTDEC;
+	} else if (suffix_result.node->node_type == AST_PREINC) {
+		suffix_result.node->node_type = AST_POSTINC;
+	}
 
-		suffix_result.node->right = left_ast_result.node;
+	suffix_result.node->right = left_ast_result.node;
 
-		PARSER_PUSH(&suffix_result);
+	PARSER_PUSH(&suffix_result);
 
-		return suffix_result;
+	return suffix_result;
 
 	// } else {
 	// 	return ast_result;
@@ -889,8 +889,8 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	if (result.node->left->token.type == TOK_IDEN
 		&& !parser_is_defined(parser, result.node->left->token.name)) {
 		REPORT_ERROR(&result.node->left->token,
-							"Undeclared identifier `%s`.",
-							result.node->left->token.name);
+					 "Undeclared identifier `%s`.",
+					 result.node->left->token.name);
 		result.error = AST_ERROR;
 		return result;
 	}
@@ -900,8 +900,8 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	if (result.node->right->token.type == TOK_IDEN
 		&& !parser_is_defined(parser, result.node->right->token.name)) {
 		REPORT_ERROR(&result.node->left->token,
-							"Undeclared identifier `%s`.",
-							result.node->right->token.name);
+					 "Undeclared identifier `%s`.",
+					 result.node->right->token.name);
 		result.error = AST_ERROR;
 		return result;
 	}
@@ -910,12 +910,16 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	// If the assignment is happening between a type decl that is not defining
 	// a pointer and an address node we fail.
 	if (result.node->left->node_type == AST_TYPE_DECL) {
-		// if (!(result.node->left->right->type.flags & TYPE_POINTER) ==
-		// 	((result.node->right->node_type != AST_ADDR && result.node->right->node_type != AST_DEREF) || (result.node->right->node_type == AST_LITERAL && result.node->right->token.type == TOK_LIT_STR))) {
-		// 	REPORT_ERROR(&result.node->token, "Cannot assign an address to a non-pointer type.");
-		// 	result.error = AST_ERROR;
-		// 	return result;
-		// }
+		if ((result.node->left->right->type.flags & TYPE_POINTER
+			 || result.node->left->right->type.flags & TYPE_ARRAY)
+			!=
+			(result.node->right->type.flags & TYPE_POINTER
+			 || result.node->node_type == AST_ADDR
+			 || result.node->right->type.flags & TYPE_ARRAY)) {
+			REPORT_ERROR(&result.node->token, "Cannot assign pointer-like type to a non-pointer-like type.");
+			result.error = AST_ERROR;
+			return result;
+		}
 	}
 
 	if (result.node->left != NULL &&
@@ -1084,14 +1088,14 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 	#if PARSER_DEFINED_CHECK
 	if ((*token)->type == TOK_IDEN && !parser_is_defined(parser, (*token)->name)) {
 		REPORT_ERROR(*token, "Undefined identifier `%s`.",
-							(*token)->name);
+					 (*token)->name);
 		ast_result.error = AST_ERROR;
 		return ast_result;
 	}
 	#endif
 
 
-	ast_result.node= ast_node_new(NEXT_TOKEN(token));
+	ast_result.node = ast_node_new(NEXT_TOKEN(token));
 
 	#if PARSER_DEFINED_CHECK
 	// It is defined for sure. We now need to update its type.
@@ -1103,6 +1107,7 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 
 	if (ast_result.node->token.type == TOK_LIT_STR) {
 		ast_result.node->label = parser_get_str_label(parser);
+		ast_result.node->type.flags |= TYPE_POINTER;
 	}
 
 	stack_push(&parser->node_stack, &ast_result);
