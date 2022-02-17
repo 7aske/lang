@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 	char* ptr = code_text;
 	int c;
 	while ((c = fgetc(fileptr)) != EOF) {
-		*ptr++ = (char)c;
+		*ptr++ = (char) c;
 	}
 	*ptr = '\0';
 
@@ -107,13 +107,9 @@ int main(int argc, char** argv) {
 		return (int) lexer.errors.count;
 	}
 
-	parser_new(&parser, code_text);
-	// @Temporary need to add input_filename in parser "constructor"
-	parser.code.filename = input_filename;
-	Parser_Result result = parser_parse(&parser, &lexer);
 
-	if (result.errors.count == 0) {
-		char* asm_filename = (char*) calloc(strlen(output_filename) + 3, sizeof (char));
+	if (lexer.errors.count == 0) {
+		char* asm_filename = (char*) calloc(strlen(output_filename) + 3, sizeof(char));
 		strcpy(asm_filename, output_filename);
 		FILE* output = fopen(strcat(asm_filename, ".s"), "w+");
 		if (!output) {
@@ -122,6 +118,22 @@ int main(int argc, char** argv) {
 			CLEAR;
 			exit(EXIT_FAILURE);
 		}
+
+		parser_new(&parser, code_text);
+
+		// @Temporary need to add input_filename in parser "constructor"
+		parser.code.filename = input_filename;
+		// @Temporary
+		parser.output = output;
+
+		Parser_Result result = parser_parse(&parser, &lexer);
+
+		if (result.errors.count != 0) {
+			fflush(output);
+			fclose(output);
+			return (s16) result.errors.count;
+		}
+
 
 		Interpreter interpreter;
 		interpreter_new(&interpreter, &result.nodes, output);
@@ -154,7 +166,7 @@ int main(int argc, char** argv) {
 		system(command_buffer);
 	}
 
-	return (s16)result.errors.count;
+	return (s16) lexer.errors.count;
 }
 
 

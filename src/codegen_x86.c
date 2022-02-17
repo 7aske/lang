@@ -96,11 +96,6 @@ s32 cg_div(Interpreter* interpreter, s32 r1, s32 r2) {
 }
 
 void cg_globsym(Interpreter* interpreter, const char* name, Type type) {
-	// s32 size = (type.size > TYPE_CHAR_SIZE ? TYPE_LONG_SIZE : TYPE_CHAR_SIZE);
-	// fprintf(interpreter->output, "\t# cg_globsym %s\n", name);
-	// fprintf(interpreter->output, "\t.comm\t%s,%ld,%ld\n",
-	// 		name, size, size);
-
 	s32 size = (s32) type.size;
 
 	fprintf(interpreter->output, "\t.data\n" "\t.globl\t%s\n", name);

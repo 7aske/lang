@@ -317,6 +317,7 @@ inline const Type* resolve_pointer_type(Ast_Node* node) {
 		new_type = *type;
 		new_type.flags |= TYPE_POINTER;
 		new_type.size = TYPE_LONG_SIZE;
+		new_type.ptr_size = type->size;
 		memcpy(&node->type, &new_type, sizeof(Type));
 	}
 	return type;
@@ -399,8 +400,14 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 							type_decl_result.node->left->token.name);
 		type_decl_result.error = AST_ERROR;
 		return type_decl_result;
-	}
+	} else
 	#endif
+	{
+		// Global variable declaration
+		parser_cg_globsym(parser,
+						  type_decl_result.node->left->token.name,
+						  type_decl_result.node->left->type);
+	}
 
 	// After resolving the type. We put it in the variable map.
 	map_put(&parser->symbols, iden_result.node->token.name, &iden_result.node->type);
@@ -534,7 +541,7 @@ Ast_Result parse_prefix(Parser* parser, Token** token) {
 
 	if (curr_tok->type == TOK_STAR) {
 		ast_result.node->type = ast_result.node->right->type;
-		ast_result.node->type.ptr_size = ast_result.node->type.size;
+		// ast_result.node->type.ptr_size = ast_result.node->right->type.size;
 		ast_result.node->type.size = TYPE_LONG_SIZE;
 		ast_result.node->type.flags = TYPE_POINTER;
 	} else if (curr_tok->type == TOK_AMP) {
@@ -875,13 +882,12 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 	// If the assignment is happening between a type decl that is not defining
 	// a pointer and an address node we fail.
 	if (result.node->left->node_type == AST_TYPE_DECL) {
-		if (!(result.node->left->right->type.flags & TYPE_POINTER) ==
-			(result.node->right->node_type == AST_ADDR ||
-			 (result.node->right->node_type == AST_LITERAL && result.node->right->token.type == TOK_LIT_STR))) {
-			REPORT_ERROR(&result.node->token, "Cannot assign an address to a non-pointer type.");
-			result.error = AST_ERROR;
-			return result;
-		}
+		// if (!(result.node->left->right->type.flags & TYPE_POINTER) ==
+		// 	((result.node->right->node_type != AST_ADDR && result.node->right->node_type != AST_DEREF) || (result.node->right->node_type == AST_LITERAL && result.node->right->token.type == TOK_LIT_STR))) {
+		// 	REPORT_ERROR(&result.node->token, "Cannot assign an address to a non-pointer type.");
+		// 	result.error = AST_ERROR;
+		// 	return result;
+		// }
 	}
 
 	if (result.node->left != NULL &&
@@ -901,6 +907,17 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 			iden = iden->right;
 		if (iden != NULL)
 			iden->node_type = AST_LVIDENT;
+	}
+
+	char buf[64];
+	if (result.node->right->node_type == AST_LITERAL) {
+		Token right_token = result.node->right->token;
+		snprintf(buf, 64, "S%ld", result.node->label);
+		switch (right_token.type) {
+			case TOK_LIT_STR:
+				parser_cg_globstr(parser, buf, right_token.string_value.data);
+				break;
+		}
 	}
 
 	PARSER_PUSH(&result);
@@ -1104,5 +1121,44 @@ bool parser_is_defined(Parser* parser, const char* var_name) {
 	return false;
 }
 
+// codegen
+
+void parser_cg_globsym(Parser* parser, const char* name, Type type) {
+	s32 size = (s32) type.size;
+
+	fprintf(parser->output, "\t.data\n" "\t.globl\t%s\n", name);
+	fprintf(parser->output, "%s:\n", name);
+
+	for (int i = 0; i < type.elements; i++) {
+		switch (type.size) {
+			case 1:
+				fprintf(parser->output, "\t.byte\t0\n");
+				break;
+			case 2:
+				fprintf(parser->output, "\t.word\t0\n");
+				break;
+			case 4:
+				fprintf(parser->output, "\t.long\t0\n");
+				break;
+			case 8:
+				fprintf(parser->output, "\t.quad\t0\n");
+				break;
+			default:
+				fatalf("Unknown typesize in cg_globsym: %d", size);
+		}
+	}
+}
+
+
+s32 parser_cg_globstr(Parser* parser, char* name, char* value) {
+	char* cptr;
+
+	fprintf(parser->output, "%s:\n", name);
+	for (cptr = value; *cptr; cptr++) {
+		fprintf(parser->output, "\t.byte\t%d\n", *cptr);
+	}
+	// Terminate string.
+	fprintf(parser->output, "\t.byte\t0\n");
+}
 
 #pragma clang diagnostic pop

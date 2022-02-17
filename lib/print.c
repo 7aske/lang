@@ -10,3 +10,7 @@ void printint(long i){
 void printhex(long i){
 	printf("0x%lx\n", i);
 }
+
+void printchar(char c){
+	printf("%c", (char)c);
+}

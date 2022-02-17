@@ -108,6 +108,7 @@ typedef struct parser {
 		const char* filename;
 	} code;
 
+	FILE* output;
 	List  errors;
 	Map   symbols;
 	Stack node_stack;
@@ -402,8 +403,14 @@ bool   parser_pop_scope(Parser* parser, Scope* dest);
 bool   parser_is_defined(Parser* parser, const char* var_name);
 Ast_Result parse_array_index(Parser* p_parser, Token** p_token);
 s32 parser_get_str_label(Parser* parser);
-
 const Type* resolve_pointer_type(Ast_Node* node);
+
+// codegen
+// @formatter:off
+void parser_cg_globsym(Parser* parser, const char* name, Type type);
+s32  parser_cg_globstr(Parser* parser, char* name, char* value);
+// @formatter:on
+
 
 #endif //LANG_PARSER_H
 

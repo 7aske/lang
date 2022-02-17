@@ -245,7 +245,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			}
 		case AST_DEREF:
 			if (parent->node_type != AST_ASSIGN) {
-				return cg_deref(interpreter, rightreg, node->type.size);
+				return cg_deref(interpreter, rightreg, node->type.ptr_size);
 			} else {
 				return cg_loadglob(interpreter, resolve_pointer_var_name(node), &node->type);
 			}
@@ -343,7 +343,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			name = node->token.name;
 			if (findglob(interpreter, name) == -1) {
 				addglob(interpreter, name, node->type);
-				cg_globsym(interpreter, name, node->type);
+				// cg_globsym(interpreter, name, node->type);
 			}
 			return cg_storglob(interpreter, reg, name, &node->type);
 		case AST_IDENT:
@@ -351,7 +351,7 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 			if (findglob(interpreter, name) == -1) {
 				if (parent != NULL && parent->node_type == AST_TYPE_DECL) {
 					addglob(interpreter, name, node->type);
-					cg_globsym(interpreter, name, node->type);
+					// cg_globsym(interpreter, name, node->type);
 				} else {
 					COLOR(TEXT_YELLOW);
 					fprintf(stderr, "WARNING: Possible undefined reference to `%s`. %s:%lu:%lu\n",
@@ -404,9 +404,6 @@ s32 interpreter_decode(Interpreter* interpreter, Ast_Node* node, s32 reg, Ast_No
 				case TOK_LIT_STR:
 					// @Refactor magic number.
 					snprintf(buf, 64, "S%ld", node->label);
-					if (findglob(interpreter, buf) == -1) {
-						cg_genglobstr(interpreter, buf, node->token.string_value.data);
-					}
 					reg = cg_loadglobstr(interpreter, buf);
 					return reg;
 			}
