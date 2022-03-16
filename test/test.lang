@@ -1,0 +1,10 @@
+
+fn main() {
+	str := "Hello World!\n";
+	printstr(str);
+
+	n := true;
+	printint(n);
+
+	return 0;
+}

@@ -178,7 +178,7 @@ s32 cg_loadglob(Interpreter* interpreter, const char* name, Type* type) {
 					name, interpreter->registers[reg]);
 			break;
 		default:
-			fatalf("Unknown size in cg_storderef_array: %ld", type->size);
+			fatalf("Unknown size in cg_loadglob: %ld\n", type->size);
 	}
 	return (reg);
 }

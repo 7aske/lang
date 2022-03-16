@@ -360,7 +360,18 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 
 	type_decl_result = parser_create_node(parser, token);
 
-	Ast_Result type_result = parse_prefix(parser, token);
+	Ast_Result type_result;
+	if (IS_CURR_OF_TYPE(token, TOK_ASSN)) {
+		Token temp = **token;
+		temp.type = TOK_IDEN;
+		temp.name = "void";
+		type_result = parser_create_node_no_inc(parser, &temp);
+		Type* type = map_get(&parser->symbols, type_result.node->token.name);
+		type_result.node->type = *type;
+	} else {
+		type_result = parse_prefix(parser, token);
+	}
+
 	// Check error?
 	(void) resolve_pointer_type(type_result.node);
 	// Copy the resolved type to the identifier
@@ -423,17 +434,23 @@ Ast_Result parse_type_decl_node(Parser* parser, Token** token) {
 	} else
 		#endif
 	{
-		// Global variable declaration
-		parser_cg_globsym(parser,
-						  type_decl_result.node->left->token.name,
-						  type_decl_result.node->left->type);
+		// @Temporary
+		// Zero type size represents that the value will be inferred.
+		if (type_decl_result.node->left->type.size > 0) {
+			// Global variable declaration
+			parser_cg_globsym(parser,
+							  type_decl_result.node->left->token.name,
+							  type_decl_result.node->left->type);
+
+			// After resolving the type. We put it in the variable map.
+			map_put(&parser->symbols, iden_result.node->token.name, &iden_result.node->type);
+			map_put(&parser_peek_scope(parser)->variables,
+					type_decl_result.node->left->token.name,
+					&type_decl_result.node->right->type);
+		}
+
 	}
 
-	// After resolving the type. We put it in the variable map.
-	map_put(&parser->symbols, iden_result.node->token.name, &iden_result.node->type);
-	map_put(&parser_peek_scope(parser)->variables,
-			type_decl_result.node->left->token.name,
-			&type_decl_result.node->right->type);
 
 	PARSER_PUSH(&type_decl_result);
 
@@ -929,6 +946,28 @@ Ast_Result parse_assignment_node(Parser* parser, Token** token) {
 		}
 	}
 
+	// @Temporary Change type of assn node to for example infer node
+	// Check if the type was not resolved and try to infer it.
+	if (result.node->left->node_type == AST_TYPE_DECL
+		&& strncmp(result.node->left->right->type.name, "void", 4) == 0) {
+		memcpy(&result.node->left->right->type, &result.node->right->type, sizeof(Type));
+		memcpy(&result.node->left->left->type, &result.node->right->type, sizeof(Type));
+
+		// Global variable declaration
+		parser_cg_globsym(parser,
+						  result.node->left->left->token.name,
+						  result.node->left->left->type);
+
+
+		// After resolving the type. We put it in the variable map.
+		map_put(&parser->symbols,
+				result.node->left->left->token.name,
+				&result.node->left->left->type);
+		map_put(&parser_peek_scope(parser)->variables,
+				result.node->left->left->token.name,
+				&result.node->left->left->type);
+	}
+
 	if (result.node->left != NULL &&
 		result.node->left->node_type == AST_IDENT) {
 		result.node->left->node_type = AST_LVIDENT;
@@ -1108,6 +1147,30 @@ Ast_Result parser_create_node(Parser* parser, Token** token) {
 	// It is defined for sure. We now need to update its type.
 	if (ast_result.node->node_type == AST_IDENT || ast_result.node->node_type == AST_LVIDENT) {
 		Type* type = map_get(&parser->symbols, ast_result.node->token.name);
+		ast_result.node->type = *type;
+	} else if (ast_result.node->node_type == AST_LITERAL) {
+		Type* type;
+		switch (ast_result.node->token.type) {
+			case TOK_LIT_INT:
+				type = map_get(&parser->symbols, "s32");
+				break;
+			case TOK_LIT_FLT:
+				type = map_get(&parser->symbols, "float");
+				break;
+			case TOK_LIT_STR:
+				type = map_get(&parser->symbols, "u8");
+				type->flags |= TYPE_POINTER;
+				break;
+			case TOK_LIT_CHR:
+				type = map_get(&parser->symbols, "u8");
+				break;
+			case TOK_TRUE:
+			case TOK_FALSE:
+				type = map_get(&parser->symbols, "bool");
+				break;
+			default:
+				REPORT_ERROR(*token, "Unable to infer type for literal");
+		}
 		ast_result.node->type = *type;
 	}
 	#endif

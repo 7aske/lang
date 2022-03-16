@@ -248,6 +248,7 @@ u32 lexer_lex(Lexer* lexer) {
 			lexer_token_new(&token, TOK_LIT_STR, string_buffer->count, col, row);
 			token.string_value.data = strdup(string_buffer->data);
 			token.string_value.size = strlen(string_buffer->data);
+			token.c1 += 2; // because of quotes
 
 			list_push(&lexer->tokens, &token);
 			col += (int) size;

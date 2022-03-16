@@ -231,4 +231,10 @@ int main(void) {
 	root = *(Ast_Node**) list_get(&result.nodes, 1);
 	assert(root->node_type == AST_IDENT);
 	assert(root->right->node_type == AST_POSTINC);
+
+	result = PARSER_TEST_CASE("str := \"Hello\";");
+	assert(result.errors.count == 0);
+	root = *(Ast_Node**) list_get(&result.nodes, 0);
+	assert(root->node_type == AST_ASSIGN);
+	assert(root->left->node_type == AST_TYPE_DECL);
 }
